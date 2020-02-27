@@ -1,5 +1,5 @@
-PSI
-===
+Package for Statistical Inference (PSI)
+=======================================
 
 A python package containing tools for statistical inference.
 
