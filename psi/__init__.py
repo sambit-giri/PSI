@@ -12,8 +12,10 @@ For example:
 
 import sys
 
-import sample_models
-from .bolfi import * 
+from . import sample_models
+from . import distances
+from .bolfi import *
+from . import bayesian_optimisation
 
 #Suppress warnings from zero-divisions and nans
 import numpy
