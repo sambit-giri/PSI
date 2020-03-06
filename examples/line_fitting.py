@@ -13,59 +13,24 @@ simulator = lambda x: line.simulator(x, line.true_intercept)
 distance  = psi.distances.euclidean
 
 #### BOLFI
-from pyDOE import *
-lhd = lhs(2, samples=5)
+#from pyDOE import *
+#lhd = lhs(2, samples=5)
 
+# 1 param
 prior  = {'m': 'uniform'}#, 'c': 'uniform'}
 bounds = {'m': [-2.5, 0.5]}#, 'c': [0,10]}
 gpr = GaussianProcessRegressor()
 
 rn = psi.BOLFI_1param(simulator, distance, y_obs, prior, bounds, N_init=5, gpr=gpr)
 
-# Start
-bounds = np.array([[-2.5, 0.5], [0,10]])
-prior_slope     = lambda: numpy.random.uniform(low=-2.5, high=0.5, size=1)
-prior_intercept = lambda: numpy.random.uniform(low=0, high=10, size=1)
+# 2 param
+simulator = lambda x: line.simulator(x[0], x[1])
+distance  = psi.distances.euclidean
 
-N_init  = 5
-params  = np.array([prior_slope() for i in range(N_init)]).squeeze()
-sim_out = np.array([simulator(i) for i in params])
-dists   = np.array([distance(y_obs, ss) for ss in sim_out])
+prior  = {'m': 'uniform', 'c': 'uniform'}
+bounds = {'m': [-2.5, 0.5], 'c': [0,10]}
+gpr = GaussianProcessRegressor()
 
-X = params.reshape(-1,1) if params.ndim==1 else params
-y = dists.reshape(-1,1) if dists.ndim==1 else dists
+rn = psi.BOLFI(simulator, distance, y_obs, prior, bounds, N_init=5, gpr=gpr)
 
-#kernel = DotProduct() + WhiteKernel()
-gpr = GaussianProcessRegressor()#kernel=kernel, random_state=0)
-gpr.fit(X, y)
-gpr.score(X, y)
-
-xplot = np.sort(np.array([prior_slope() for i in range(100)]), axis=0)
-y_pred, y_std = gpr.predict(xplot, return_std=True)
-unnorm_post_mean = np.exp(-y_pred/2.)
-#norm = simps(unnorm_post_mean.squeeze(), xplot.squeeze())
-#norm_post_mean = unnorm_post_mean/norm
-
-## Next step
-# Obtain next sampling point from the acquisition function (expected_improvement)
-X_next = psi.bayesian_optimisation.propose_location(psi.bayesian_optimisation.expected_improvement, X, y, gpr, bounds[0].reshape(1,-1))
-    
-# Obtain next noisy sample from the objective function
-y_next = simulator(X_next)
-d_next = distance(y_obs, y_next)
-
-params = np.append(params, X_next) 
-dists  = np.append(dists, d_next) 
-
-X = params.reshape(-1,1) if params.ndim==1 else params
-y = dists.reshape(-1,1) if dists.ndim==1 else dists
-
-#kernel = DotProduct() + WhiteKernel()
-gpr = GaussianProcessRegressor()#kernel=kernel, random_state=0)
-gpr.fit(X, y)
-gpr.score(X, y)
-
-xplot = np.sort(np.array([prior_slope() for i in range(100)]), axis=0)
-y_pred, y_std = gpr.predict(xplot, return_std=True)
-unnorm_post_mean = np.exp(-y_pred/2.)
-
+	
