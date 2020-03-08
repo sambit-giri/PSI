@@ -5,6 +5,7 @@ from sklearn.model_selection import KFold
 from scipy.integrate import simps
 from . import distances
 from . import bayesian_optimisation as bopt
+from . import helper_functions as hf 
 
 def grid_bounds(bounds, n_grid=20):
 	def add_dim_to_grid(bound, n_grid=100, init_grid=None):
@@ -73,7 +74,8 @@ class BOLFI_1param:
 			dists   = np.array([self.distance(self.y_obs, ss) for ss in sim_out])
 			self.params = params
 			self.dists  = dists
-			print(fit_model(self.params, self.dists))
+			msg = fit_model(self.params, self.dists)
+			hf.loading_verbose(str(msg))
 		# Further sampling
 		start_iter = self.params.size
 		condition1, condition2 = False, False
@@ -88,7 +90,8 @@ class BOLFI_1param:
 
 			self.params = np.append(self.params, X_next) 
 			self.dists  = np.append(self.dists, d_next)
-			print(fit_model(self.params, self.dists))
+			msg = fit_model(self.params, self.dists)
+			hf.loading_verbose(str(msg))
 			sucJSdist   = distances.jensenshannon(self.post_mean_normmax[-1], self.post_mean_normmax[-2])[0]
 			self.successive_JS_dist.append(sucJSdist)
 			condition1 = self.cv_JS_dist['mean'][-1]+self.cv_JS_dist['std'][-1]<self.cv_JS_tol
@@ -149,7 +152,8 @@ class BOLFI:
 			dists   = np.array([self.distance(self.y_obs, ss) for ss in sim_out])
 			self.params = params
 			self.dists  = dists
-			print(fit_model(self.params, self.dists))
+			msg = fit_model(self.params, self.dists)
+			hf.loading_verbose(str(msg))
 		"""
 		# Further sampling
 		start_iter = self.params.size
@@ -165,7 +169,8 @@ class BOLFI:
 
 			self.params = np.append(self.params, X_next) 
 			self.dists  = np.append(self.dists, d_next)
-			print(fit_model(self.params, self.dists))
+			msg = fit_model(self.params, self.dists)
+			hf.loading_verbose(str(msg))
 			sucJSdist   = distances.jensenshannon(self.post_mean_normmax[-1], self.post_mean_normmax[-2])[0]
 			self.successive_JS_dist.append(sucJSdist)
 			condition1 = self.cv_JS_dist['mean'][-1]+self.cv_JS_dist['std'][-1]<self.cv_JS_tol
