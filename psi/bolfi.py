@@ -154,20 +154,20 @@ class BOLFI:
 			self.dists  = dists
 			msg = fit_model(self.params, self.dists)
 			hf.loading_verbose(str(msg))
-		"""
+		
 		# Further sampling
-		start_iter = self.params.size
+		start_iter = len(self.params)
 		condition1, condition2 = False, False
 		for n_iter in range(start_iter,self.max_iter):
 			if condition1 and condition2: break
 			X = self.params.reshape(-1,1) if self.params.ndim==1 else self.params
 			y = self.dists.reshape(-1,1) if self.dists.ndim==1 else self.dists
-			X_next = bopt.propose_location(bopt.expected_improvement, X, y, gpr, self.bounds)
+			X_next = bopt.propose_location(bopt.expected_improvement, X, y, gpr, self.bounds).T
 
-			y_next = self.simulator(X_next)
+			y_next = self.simulator(X_next.T)
 			d_next = self.distance(self.y_obs, y_next)
 
-			self.params = np.append(self.params, X_next) 
+			self.params = np.vstack((self.params, X_next)) #np.append(self.params, X_next)
 			self.dists  = np.append(self.dists, d_next)
 			msg = fit_model(self.params, self.dists)
 			hf.loading_verbose(str(msg))
@@ -175,5 +175,4 @@ class BOLFI:
 			self.successive_JS_dist.append(sucJSdist)
 			condition1 = self.cv_JS_dist['mean'][-1]+self.cv_JS_dist['std'][-1]<self.cv_JS_tol
 			condition2 = self.successive_JS_dist[-1]<self.successive_JS_tol
-		"""
 
