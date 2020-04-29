@@ -180,7 +180,7 @@ class BOLFI:
 			self.params = np.vstack((self.params, X_next)) #np.append(self.params, X_next)
 			self.dists  = np.append(self.dists, d_next)
 			msg = self.fit_model(self.params, self.dists)
-			hf.loading_verbose('{0:6d}|{1:.6f}'.format(n_iter,msg))
+			hf.loading_verbose('{0:6d}|{1:.6f}'.format(n_iter+1,msg))
 			sucJSdist   = distances.jensenshannon(self.post_mean_normmax[-1], self.post_mean_normmax[-2])[0]
 			self.successive_JS_dist.append(sucJSdist)
 			condition1 = self.cv_JS_dist['mean'][-1]+self.cv_JS_dist['std'][-1]<self.cv_JS_tol

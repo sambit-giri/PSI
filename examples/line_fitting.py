@@ -39,7 +39,7 @@ prior  = {'m': 'uniform', 'c': 'uniform'}
 bounds = {'m': [-2.5, 0.5], 'c': [0,10]}
 gpr = GaussianProcessRegressor()
 
-rn = BOLFI(simulator, distance, y_obs, prior, bounds, N_init=5, gpr=gpr)
+rn = psi.BOLFI(simulator, distance, y_obs, prior, bounds, N_init=5, gpr=gpr)
 rn.run()	
 	
 ## JS over iterations
