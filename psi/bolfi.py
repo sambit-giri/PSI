@@ -51,7 +51,7 @@ class BOLFI_1param:
 		for train_index, test_index in kf.split(X):
 			X_train, X_test = X[train_index], X[test_index]
 			y_train, y_test = y[train_index], y[test_index]
-			gpr.fit(X_train, y_train)
+			self.gpr.fit(X_train, y_train)
 			y_pred, y_std = gpr.predict(self.xout, return_std=True)
 			unnorm_post_mean = np.exp(-y_pred/2.)
 			pdfs.append(unnorm_post_mean)
@@ -67,7 +67,7 @@ class BOLFI_1param:
 
 	def run(self, max_iter=None):
 		if max_iter is not None: self.max_iter = max_iter
-		gpr = self.gpr
+		#gpr = self.gpr
 		start_iter = self.params.size
 		# Initialization
 		if start_iter<self.N_init:
@@ -85,7 +85,7 @@ class BOLFI_1param:
 			if condition1 and condition2: break
 			X = self.params.reshape(-1,1) if self.params.ndim==1 else self.params
 			y = self.dists.reshape(-1,1) if self.dists.ndim==1 else self.dists
-			X_next = bopt.propose_location(bopt.expected_improvement, X, y, gpr, self.bounds[0].reshape(1,-1))
+			X_next = bopt.propose_location(bopt.expected_improvement, X, y, self.gpr, self.bounds[0].reshape(1,-1))
 
 			y_next = self.simulator(X_next)
 			d_next = self.distance(self.y_obs, y_next)
