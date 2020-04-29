@@ -79,7 +79,7 @@ class BOLFI_1param:
 			self.params = params
 			self.dists  = dists
 			msg = self.fit_model(self.params, self.dists)
-			hf.loading_verbose('%.6f'%msg)
+			hf.loading_verbose('{0:.6f}'.format(msg))
 		# Further sampling
 		start_iter = self.params.size
 		condition1, condition2 = False, False
@@ -95,7 +95,7 @@ class BOLFI_1param:
 			self.params = np.append(self.params, X_next) 
 			self.dists  = np.append(self.dists, d_next)
 			msg = self.fit_model(self.params, self.dists)
-			hf.loading_verbose(str(msg))
+			hf.loading_verbose('{0:.6f}'.format(msg))
 			sucJSdist   = distances.jensenshannon(self.post_mean_normmax[-1], self.post_mean_normmax[-2])[0]
 			self.successive_JS_dist.append(sucJSdist)
 			condition1 = self.cv_JS_dist['mean'][-1]+self.cv_JS_dist['std'][-1]<self.cv_JS_tol
@@ -157,7 +157,7 @@ class BOLFI:
 			self.params = params
 			self.dists  = dists
 			msg = fit_model(self.params, self.dists)
-			hf.loading_verbose(str(msg))
+			hf.loading_verbose('{0:.6f}'.format(msg))
 		
 		# Further sampling
 		start_iter = len(self.params)
@@ -174,7 +174,7 @@ class BOLFI:
 			self.params = np.vstack((self.params, X_next)) #np.append(self.params, X_next)
 			self.dists  = np.append(self.dists, d_next)
 			msg = fit_model(self.params, self.dists)
-			hf.loading_verbose(str(msg))
+			hf.loading_verbose('{0:.6f}'.format(msg))
 			sucJSdist   = distances.jensenshannon(self.post_mean_normmax[-1], self.post_mean_normmax[-2])[0]
 			self.successive_JS_dist.append(sucJSdist)
 			condition1 = self.cv_JS_dist['mean'][-1]+self.cv_JS_dist['std'][-1]<self.cv_JS_tol
