@@ -79,7 +79,7 @@ class BOLFI_1param:
 			self.params = params
 			self.dists  = dists
 			msg = self.fit_model(self.params, self.dists)
-			hf.loading_verbose(str(msg))
+			hf.loading_verbose('%.6f'%msg)
 		# Further sampling
 		start_iter = self.params.size
 		condition1, condition2 = False, False
