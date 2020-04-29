@@ -101,8 +101,7 @@ class BOLFI_1param:
 			condition1 = self.cv_JS_dist['mean'][-1]+self.cv_JS_dist['std'][-1]<self.cv_JS_tol
 			condition2 = self.successive_JS_dist[-1]<self.successive_JS_tol
 
-c
-lass BOLFI:
+class BOLFI:
 	def __init__(self, simulator, distance, observation, prior, bounds, N_init=5, gpr=None, max_iter=100, cv_JS_tol=0.01, successive_JS_tol=0.01, n_grid_out=100):
 		self.N_init  = N_init
 		self.gpr = GaussianProcessRegressor() if gpr is None else gpr
