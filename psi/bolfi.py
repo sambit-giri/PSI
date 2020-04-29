@@ -52,14 +52,14 @@ class BOLFI_1param:
 			X_train, X_test = X[train_index], X[test_index]
 			y_train, y_test = y[train_index], y[test_index]
 			self.gpr.fit(X_train, y_train)
-			y_pred, y_std = gpr.predict(self.xout, return_std=True)
+			y_pred, y_std = self.gpr.predict(self.xout, return_std=True)
 			unnorm_post_mean = np.exp(-y_pred/2.)
 			pdfs.append(unnorm_post_mean)
 		
 		cvdist = np.array([distances.jensenshannon(p1,p2) for p1 in pdfs for p2 in pdfs])
 		self.cv_JS_dist['std'].append(cvdist.std())
 		self.cv_JS_dist['mean'].append(cvdist.mean())
-		y_pred, y_std = gpr.predict(self.xout, return_std=True)
+		y_pred, y_std = self.gpr.predict(self.xout, return_std=True)
 		unnorm_post_mean = np.exp(-y_pred/2.)
 		self.post_mean_unnorm.append(unnorm_post_mean)
 		self.post_mean_normmax.append(unnorm_post_mean/unnorm_post_mean.max())
