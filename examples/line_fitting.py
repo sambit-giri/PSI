@@ -39,7 +39,7 @@ prior  = {'m': 'uniform', 'c': 'uniform'}
 bounds = {'m': [-2.5, 0.5], 'c': [0,10]}
 gpr = GaussianProcessRegressor()
 
-rn = psi.BOLFI(simulator, distance, y_obs, prior, bounds, N_init=5, gpr=gpr)
+rn = psi.BOLFI(simulator, distance, y_obs, prior, bounds, N_init=5, gpr=gpr, successive_JS_tol=0.02)
 rn.run()	
 	
 ## JS over iterations
@@ -59,7 +59,7 @@ plt.scatter(rn.params[:,0], rn.params[:,1], c=rn.dists, cmap='jet')
 plt.colorbar()
 plt.subplot(122)
 plt.title('Posterior')
-plt.scatter(rn.xout[:,0], rn.xout[:,1], c=rn.post_mean_normmax[-1].flatten())#, cmap='jet')
+plt.scatter(rn.xout[:,0], rn.xout[:,1], c=rn.post_mean_normmax[-1].flatten(), cmap='jet')
 plt.colorbar()
 plt.scatter(line.true_slope,line.true_intercept, marker='*', c='k')
 	
@@ -166,7 +166,7 @@ class BOLFI:
 			self.params = np.vstack((self.params, X_next)) #np.append(self.params, X_next)
 			self.dists  = np.append(self.dists, d_next)
 			msg = self.fit_model(self.params, self.dists)
-			hf.loading_verbose('{0:6d}|{1:.6f}'.format(n_iter,msg))
+			hf.loading_verbose('{0:6d}|{1:.6f}'.format(n_iter+1,msg))
 			sucJSdist   = distances.jensenshannon(self.post_mean_normmax[-1], self.post_mean_normmax[-2])[0]
 			self.successive_JS_dist.append(sucJSdist)
 			condition1 = self.cv_JS_dist['mean'][-1]+self.cv_JS_dist['std'][-1]<self.cv_JS_tol
