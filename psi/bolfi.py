@@ -188,7 +188,7 @@ class BOLFI:
 
 		if trained_gpr:
 			print('\nFinal training of GPR for output.')
-			X = params.reshape(-1,1) if params.ndim==1 else params
-			y = dists.reshape(-1,1) if dists.ndim==1 else dists
+			X = self.params.reshape(-1,1) if self.params.ndim==1 else self.params
+			y = self.dists.reshape(-1,1) if self.dists.ndim==1 else self.dists
 			self.gpr.fit(X, y)
 
