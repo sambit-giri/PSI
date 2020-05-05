@@ -187,7 +187,7 @@ class BOLFI:
 			condition2 = self.successive_JS_dist[-1]<self.successive_JS_tol
 
 		if trained_gpr:
-			print('Final training of GPR for output.')
+			print('\nFinal training of GPR for output.')
 			X = params.reshape(-1,1) if params.ndim==1 else params
 			y = dists.reshape(-1,1) if dists.ndim==1 else dists
 			self.gpr.fit(X, y)
