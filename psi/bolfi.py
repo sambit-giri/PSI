@@ -151,7 +151,7 @@ class BOLFI:
 		self.post_mean_normmax.append(unnorm_post_mean/unnorm_post_mean.max())
 		return cvdist.std()
 
-	def run(self, max_iter=None):
+	def run(self, max_iter=None, trained_gpr=True):
 		if max_iter is not None: self.max_iter = max_iter
 		#gpr = self.gpr
 		start_iter = self.params.size
@@ -185,4 +185,10 @@ class BOLFI:
 			self.successive_JS_dist.append(sucJSdist)
 			condition1 = self.cv_JS_dist['mean'][-1]+self.cv_JS_dist['std'][-1]<self.cv_JS_tol
 			condition2 = self.successive_JS_dist[-1]<self.successive_JS_tol
+
+		if trained_gpr:
+			print('Final training of GPR for output.')
+			X = params.reshape(-1,1) if params.ndim==1 else params
+			y = dists.reshape(-1,1) if dists.ndim==1 else dists
+			self.gpr.fit(X, y)
 
