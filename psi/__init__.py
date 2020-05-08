@@ -16,6 +16,7 @@ from . import sample_models
 from . import distances
 from .bolfi import *
 from . import bayesian_optimisation
+from .lfire import *
 
 #Suppress warnings from zero-divisions and nans
 import numpy
