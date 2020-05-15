@@ -26,6 +26,7 @@ class LFIRE:
 		#self.N_init  = N_init
 		self.simulator = simulator
 		#self.distance  = distance
+		self.verbose = verbose
 		self.y_obs = observation
 		self.param_names = [kk for kk in prior]
 		self.param_bound = bounds
@@ -82,7 +83,7 @@ class LFIRE:
 		for i, theta in enumerate(self.thetas):
 			r0 = self.ratio(theta)
 			self.posterior[i] = r0
-			if verbose:
+			if self.verbose:
 				print('P({0:}) = {1:.5f}'.format(theta,r0))
 				print('Completed: {0:.2f} %%'.format(100*(i+1)/self.thetas.shape[0]))
 
