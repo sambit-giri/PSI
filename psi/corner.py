@@ -1,4 +1,5 @@
 import numpy as np 
+import matplotlib.pyplot as plt
 from skimage.filters import gaussian
 
 def plot_lfire(lfi, smooth=5):
