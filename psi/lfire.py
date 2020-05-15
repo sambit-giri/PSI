@@ -22,10 +22,10 @@ def _grid_bounds(bounds, n_grid=20):
 	return grid
 
 class LFIRE:
-	def __init__(self, simulator, distance, observation, prior, bounds, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, thetas=None):
+	def __init__(self, simulator, observation, prior, bounds, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, thetas=None, verbose=True):
 		#self.N_init  = N_init
 		self.simulator = simulator
-		self.distance  = distance
+		#self.distance  = distance
 		self.y_obs = observation
 		self.param_names = [kk for kk in prior]
 		self.param_bound = bounds
@@ -82,8 +82,9 @@ class LFIRE:
 		for i, theta in enumerate(self.thetas):
 			r0 = self.ratio(theta)
 			self.posterior[i] = r0
-			print('P({0:}) = {1:.5f}'.format(theta,r0))
-			print('Completed: {0:.1f}'.format(100*(i+1)/self.thetas.shape[0]))
+			if verbose:
+				print('P({0:}) = {1:.5f}'.format(theta,r0))
+				print('Completed: {0:.2f} %%'.format(100*(i+1)/self.thetas.shape[0]))
 
 
 

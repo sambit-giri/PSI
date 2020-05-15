@@ -17,6 +17,7 @@ from . import distances
 from .bolfi import *
 from . import bayesian_optimisation
 from .lfire import *
+from . import corner
 
 #Suppress warnings from zero-divisions and nans
 import numpy

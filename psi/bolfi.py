@@ -9,7 +9,7 @@ from . import distances
 from . import bayesian_optimisation as bopt
 from . import helper_functions as hf 
 
-def grid_bounds(bounds, n_grid=20):
+def _grid_bounds(bounds, n_grid=20):
 	def add_dim_to_grid(bound, n_grid=100, init_grid=None):
 		if init_grid is None:
 			final_grid = np.linspace(bound[0], bound[1], n_grid)
@@ -114,7 +114,7 @@ class BOLFI:
 		#self.sample_prior = {}
 		#for i,kk in enumerate(self.param_names):
 		#	self.sample_prior[kk] = lambda: bounds[kk][0]+(bounds[kk][1]-bounds[kk][0])*np.random.uniform()
-		self.xout = grid_bounds(self.bounds, n_grid=n_grid_out)
+		self.xout = _grid_bounds(self.bounds, n_grid=n_grid_out)
 		self.max_iter = max_iter
 		self.params = np.array([])
 		self.post_mean_unnorm  = []
