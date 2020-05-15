@@ -85,7 +85,7 @@ class LFIRE:
 			self.posterior[i] = r0
 			if self.verbose:
 				print('P({0:}) = {1:.5f}'.format(theta,r0))
-				print('Completed: {0:.2f} %%'.format(100*(i+1)/self.thetas.shape[0]))
+				print('Completed: {0:.2f} %'.format(100*(i+1)/self.thetas.shape[0]))
 
 
 

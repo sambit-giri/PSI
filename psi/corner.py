@@ -5,7 +5,9 @@ from skimage.filters import gaussian
 def plot_lfire(lfi, smooth=5):
 	if np.ndim(lfi.thetas)==1:
 		fig, axes = plt.subplots(nrows=1, ncols=1) 
-		axes.plot(lfi.thetas, lfi.posterior)
+		xx, cube  = lfi.thetas, lfi.posterior
+		if smooth: cube = gaussian(cube, smooth) 
+		axes.plot(xx, cube)
 		axes.set_xlabel(lfi.param_names[0])
 		plt.show()
 		return None
