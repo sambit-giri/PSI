@@ -8,6 +8,7 @@ def plot_lfire(lfi, smooth=5):
 		axes.plot(lfi.thetas, lfi.posterior)
 		axes.set_xlabel(lfi.param_names[0])
 		plt.show()
+		return None
 	else:
 		N = lfi.thetas.shape[1]
 		fig, axes = plt.subplots(nrows=N, ncols=N)
