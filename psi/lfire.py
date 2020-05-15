@@ -67,7 +67,7 @@ class LFIRE:
 		X = np.vstack((sim_out_num,sim_out_den))
 		y = np.hstack((np.ones(sim_out_num.shape[0]),np.zeros(sim_out_den.shape[0])))
 
-		clf = LogisticRegressionCV(penalty=self.penalty)
+		clf = LogisticRegressionCV(penalty=self.penalty, solver='saga')
 		clf.fit(X, y)
 
 		sim_out_true = np.array([self.y_obs])
