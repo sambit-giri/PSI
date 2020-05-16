@@ -87,7 +87,7 @@ class LFIRE:
 			if self.verbose:
 				if np.array(theta).size==1: theta = [theta]
 				msg = ','.join(['{0:.3f}'.format(th) for th in theta]) 
-				print('P({0:}) = {1:.5f}'.format(msg,r0))
+				print('Pr({0:}) = {1:.5f}'.format(msg,r0))
 				print('Completed: {0:.2f} %'.format(100*(i+1)/self.thetas.shape[0]))
 
 
