@@ -85,7 +85,8 @@ class LFIRE:
 			r0 = self.ratio(theta)
 			self.posterior[i] = r0
 			if self.verbose:
-				msg = ','.join([str(th) for th in theta]) 
+				if np.array(theta).size==1: theta = [theta]
+				msg = ','.join(['{0:.3f}'.format(th) for th in theta]) 
 				print('P({0:}) = {1:.5f}'.format(msg,r0))
 				print('Completed: {0:.2f} %'.format(100*(i+1)/self.thetas.shape[0]))
 
