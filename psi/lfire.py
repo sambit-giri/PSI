@@ -22,7 +22,7 @@ def _grid_bounds(bounds, n_grid=20):
 	return grid
 
 class LFIRE:
-	def __init__(self, simulator, observation, prior, bounds, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, thetas=None, verbose=True, penalty='l1'):
+	def __init__(self, simulator, observation, prior, bounds, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, thetas=None, verbose=True, penalty='l1', n_jobs=4):
 		#self.N_init  = N_init
 		self.simulator = simulator
 		#self.distance  = distance
@@ -35,6 +35,7 @@ class LFIRE:
 		self.n_m = n_m
 		self.n_theta = n_theta
 		self.n_grid_out = n_grid_out
+		self.n_jobs = n_jobs
 
 		if sim_out_den is not None: 
 			self.sim_out_den = sim_out_den
@@ -67,7 +68,7 @@ class LFIRE:
 		X = np.vstack((sim_out_num,sim_out_den))
 		y = np.hstack((np.ones(sim_out_num.shape[0]),np.zeros(sim_out_den.shape[0])))
 
-		clf = LogisticRegressionCV(penalty=self.penalty, solver='saga')
+		clf = LogisticRegressionCV(penalty=self.penalty, solver='saga', n_jobs=self.n_jobs)
 		clf.fit(X, y)
 
 		sim_out_true = np.array([self.y_obs])
