@@ -22,7 +22,7 @@ def _grid_bounds(bounds, n_grid=20):
 	return grid
 
 class LFIRE:
-	def __init__(self, simulator, observation, prior, bounds, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, thetas=None, verbose=True, penalty='l1', n_jobs=4):
+	def __init__(self, simulator, observation, prior, bounds, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, thetas=None, verbose=True, penalty='l1', n_jobs=4, clf=None):
 		#self.N_init  = N_init
 		self.simulator = simulator
 		#self.distance  = distance
@@ -36,6 +36,7 @@ class LFIRE:
 		self.n_theta = n_theta
 		self.n_grid_out = n_grid_out
 		self.n_jobs = n_jobs
+		self.clf    = clf
 
 		if sim_out_den is not None: 
 			self.sim_out_den = sim_out_den
@@ -68,7 +69,7 @@ class LFIRE:
 		X = np.vstack((sim_out_num,sim_out_den))
 		y = np.hstack((np.ones(sim_out_num.shape[0]),np.zeros(sim_out_den.shape[0])))
 
-		clf = LogisticRegressionCV(penalty=self.penalty, solver='saga', n_jobs=self.n_jobs)
+		clf = LogisticRegressionCV(penalty=self.penalty, solver='saga', n_jobs=self.n_jobs) if self.clf is None else self.clf
 		clf.fit(X, y)
 
 		sim_out_true = np.array([self.y_obs])
@@ -79,11 +80,11 @@ class LFIRE:
 		rr = 1 if rr>1 else rr
 		return rr
 
-	def run(self, thetas=None, n_grid_out=100):
+	def run(self, thetas=None, n_grid_out=100, sim_out_num=None):
 		if thetas is not None: self.thetas = thetas
 		self.posterior = np.zeros(self.thetas.shape[0])
 		for i, theta in enumerate(self.thetas):
-			r0 = self.ratio(theta)
+			r0 = self.ratio(theta, sim_out_num=sim_out_num)
 			self.posterior[i] = r0
 			if self.verbose:
 				if np.array(theta).size==1: theta = [theta]
