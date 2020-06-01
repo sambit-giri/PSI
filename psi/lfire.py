@@ -53,6 +53,7 @@ class LFIRE:
 		self.thetas = _grid_bounds(self.bounds, n_grid=self.n_grid_out)
 
 	def sim_denominator(self):
+		print('Simulating the marginalisation data set.')
 		params  = np.array([[self.sample_prior(kk) for kk in self.param_names] for i in range(self.n_m)]).squeeze()
 		self.sim_out_den = np.array([self.simulator(i) for i in params])
 
