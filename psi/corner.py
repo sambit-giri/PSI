@@ -2,7 +2,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 from skimage.filters import gaussian
 
-def plot_lfire(lfi, smooth=5):
+def credible_limit(zi, level, method='naive'):
+	if method=='naive':
+		zbins = np.linspace(zi.min(), zi.max(), 2000)
+		sm = 0
+		#while sm<(1-level/100):
+		for i,zb in enumerate(zbins):
+			sm = np.sum(zi[zi<zb])/np.sum(zi)
+			#print(zb,sm)
+			if sm>(1-level/100): break
+	return zb
+
+def plot_lfire(lfi, smooth=5, true_values=None, CI=[95]):
 	if np.ndim(lfi.thetas)==1:
 		fig, axes = plt.subplots(nrows=1, ncols=1) 
 		xx, cube  = lfi.thetas, lfi.posterior
@@ -18,14 +29,14 @@ def plot_lfire(lfi, smooth=5):
 			for j in range(N):
 				if j>i: axes[i,j].axis('off')
 				elif i==j: 
-					plot_1Dmarginal(lfi, i, ax=axes[i,j], smooth=smooth)
+					plot_1Dmarginal(lfi, i, ax=axes[i,j], smooth=smooth, true_values=true_values)
 					if i+1<N: 
 						axes[i,j].set_xlabel('')
 						axes[i,j].set_xticks([])
 					if j>0:
 						axes[i,j].set_yticks([])
 				else: 
-					im = plot_2Dmarginal(lfi, i, j, ax=axes[i,j], smooth=smooth)
+					im = plot_2Dmarginal(lfi, i, j, ax=axes[i,j], smooth=smooth, true_values=true_values, CI=CI)
 					if i+1<N: 
 						axes[i,j].set_xlabel('')
 						axes[i,j].set_xticks([])
@@ -39,10 +50,10 @@ def plot_lfire(lfi, smooth=5):
 	plt.show()
 
 
-def plot_2Dmarginal(lfi, idx, idy, ax=None, bins=100, verbose=False, smooth=False):
+def plot_2Dmarginal(lfi, idx, idy, ax=None, bins=100, verbose=False, smooth=False, true_values=None, CI=[95]):
 	N = lfi.thetas.shape[1]
 	thetas = lfi.thetas
-	inds = np.arange(N); inds = np.delete(inds, idx); inds = np.delete(inds, idy)
+	inds = np.arange(N); inds = np.delete(inds, max([idx,idy])); inds = np.delete(inds, min([idx,idy]))
 	X = np.array([thetas[:,i] for i in inds])
 	X = np.vstack((thetas[:,idx].reshape(1,-1), thetas[:,idy].reshape(1,-1))).T if X.size==0 else np.vstack((thetas[:,idx].reshape(1,-1), thetas[:,idy].reshape(1,-1), X)).T
 	y = lfi.posterior
@@ -58,7 +69,15 @@ def plot_2Dmarginal(lfi, idx, idy, ax=None, bins=100, verbose=False, smooth=Fals
 	xi, yi = np.meshgrid(xx,yy)
 	if smooth: cube = gaussian(cube, smooth) 
 	if ax is None: fig, ax = plt.subplots(nrows=1, ncols=1)
-	im = ax.pcolormesh(xi, yi, (cube-cube.min())/(cube.max()-cube.min()), cmap='Blues')
+	zi = (cube-cube.min())/(cube.max()-cube.min())
+	im = ax.pcolormesh(xi, yi, zi, cmap='Blues')
+	if true_values is not None: 
+		ax.scatter(true_values[lfi.param_names[idy]], true_values[lfi.param_names[idx]], marker='*', c='r')
+	if CI is not None:
+		for cc in CI:
+			ll = credible_limit(zi, cc, method='naive')
+			#print(ll)
+			ax.contour(xi, yi, zi, levels=[ll], linewidths=0.5, colors='k')
 	if ax is None: fig.colorbar(im, ax=ax)
 	#ax.imshow(xx, cube)
 	ax.set_xlabel(lfi.param_names[idy])
@@ -66,7 +85,7 @@ def plot_2Dmarginal(lfi, idx, idy, ax=None, bins=100, verbose=False, smooth=Fals
 	return im
 
 
-def plot_1Dmarginal(lfi, idx, ax=None, bins=100, verbose=False, smooth=False):
+def plot_1Dmarginal(lfi, idx, ax=None, bins=100, verbose=False, smooth=False, true_values=None):
 	N = lfi.thetas.shape[1]
 	thetas = lfi.thetas
 	inds = np.arange(N); inds = np.delete(inds, idx)
@@ -85,4 +104,6 @@ def plot_1Dmarginal(lfi, idx, ax=None, bins=100, verbose=False, smooth=False):
 		fig, ax = plt.subplots(nrows=1, ncols=1)
 	ax.plot(xx, (cube-cube.min())/(cube.max()-cube.min()))
 	ax.set_xlabel(lfi.param_names[idx])
+	
+
 

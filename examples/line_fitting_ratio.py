@@ -2,7 +2,7 @@ import numpy as np
 from importlib import reload
 import psi
 
-yerr_param = [0.0, 1.0]#[0.1, 1.5]
+yerr_param = [-0.5, 1.0]#[0.1, 1.5]
 line  = psi.sample_models.noisy_line(yerr_param=yerr_param)
 xs    = line.xs()
 y_obs = line.observation()
