@@ -66,7 +66,7 @@ def propose_location(acquisition, X_sample, Y_sample, gpr, bounds, n_restarts=25
             
     return min_x.reshape(-1, 1)
 
-def GP_UCB(X_sample, Y_sample, gpr, bounds, beta=, n_restarts=25):
+def GP_UCB(X_sample, Y_sample, gpr, bounds, beta=1, n_restarts=25):
     return None
 
 
