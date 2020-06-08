@@ -21,7 +21,9 @@ def _grid_bounds(bounds, n_grid=20):
 		grid = add_dim_to_grid(bound, n_grid=n_grid, init_grid=grid)
 	return grid
 
-class LFIRE:
+LFIRE = LFIRE_core
+
+class LFIRE_core:
 	def __init__(self, simulator, observation, prior, bounds, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, thetas=None, verbose=True, penalty='l1', n_jobs=4, clf=None):
 		#self.N_init  = N_init
 		self.simulator = simulator

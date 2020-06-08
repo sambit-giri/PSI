@@ -2,7 +2,7 @@ import numpy as np
 from importlib import reload
 import psi
 
-yerr_param = [-0.5, 1.0]#[0.1, 1.5]
+yerr_param = [-1, 2.0]#[0.1, 1.5]
 line  = psi.sample_models.noisy_line(yerr_param=yerr_param)
 xs    = line.xs()
 y_obs = line.observation()
@@ -30,6 +30,7 @@ bounds2 = {'m': [-2.5, 0.5], 'c': [0,10]}
 lfi2 = psi.LFIRE(simulator2, y_obs, prior2, bounds2, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, thetas=None)
 lfi2.run()
 
+true_values = {'m': line.true_slope, 'c': line.true_intercept}
 psi.corner.plot_lfire(lfi2)
 
 
