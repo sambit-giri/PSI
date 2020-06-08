@@ -5,7 +5,9 @@ import warnings
 warnings.filterwarnings("ignore")
 from . import distances
 from . import helper_functions as hf
+from . import bayesian_optimisation as bopt
 from sklearn.linear_model import LogisticRegressionCV
+from sklearn.gaussian_process import GaussianProcessRegressor
 
 def _grid_bounds(bounds, n_grid=20):
 	def add_dim_to_grid(bound, n_grid=100, init_grid=None):
@@ -98,53 +100,137 @@ class LFIRE_core:
 
 
 class LFIRE_TrainingSetAuto:
-	def __init__(self, simulator, observation, prior, bounds, n_m_init=10, n_theta_init=10, n_grid_out=25, thetas=None, verbose=True, penalty='l1', n_jobs=4, clfy=None):
-		self.n_m_init = n_m_init
-		self.n_theta_init = n_theta_init
+	def __init__(self, simulator, observation, prior, bounds, n_init=10, n_step=1, n_max=100, n_grid_out=25, thetas=None, verbose=True, penalty='l1', n_jobs=4, clfy=None, lfire=None):
+		self.n_init = n_init
 		self.n_m = None
 		self.n_theta = None
-		lfi = LFIRE_core(simulator, observation, prior, bounds, sim_out_den=None, n_m=self.n_m_init, n_theta=self.n_theta_init, n_grid_out=100, thetas=thetas, verbose=verbose, penalty=penalty, n_jobs=n_jobs, clfy=clfy)
+		self.n_step  = n_step
+		self.n_max   = n_max
+		self.n_grid_out = n_grid_out
+
+		self.simulator = simulator
+		self.verbose = verbose
+		self.penalty = penalty
+		self.y_obs  = observation
+		self.prior  = prior
+		self.bounds = bounds
+		self.thetas = thetas
+		self.n_jobs = n_jobs
+		self.clfy   = clfy
+
+		self.lfire = LFIRE if lfire is None else lfire
 
 	def run(self, thetas=None, n_grid_out=100, sim_out_num=None):
-		if thetas is not None: lfi.thetas = thetas
-		lfi.posterior = np.zeros(lfi.thetas.shape[0])
-		self.clfy_score = np.zeros(lfi.thetas.shape[0])
-		for i, theta in enumerate(lfi.thetas):
-			r0, s0 = lfi.ratio(theta, sim_out_num=sim_out_num, get_score=True)
-			lfi.posterior[i] = r0
-			self.clfy_score[i] = s0
-			if self.verbose:
-				if np.array(theta).size==1: theta = [theta]
-				msg = ','.join(['{0:.3f}'.format(th) for th in theta]) 
-				print('Pr({0:}) = {1:.5f}'.format(msg,r0))
-				print('Completed: {0:.2f} %'.format(100*(i+1)/self.thetas.shape[0]))
+		self.clfy_score_mean = {}
+		self.Ns = np.arange(self.n_init, self.n_max, self.n_step)
+		for ni in self.Ns:
+			self.lfi = self.lfire(self.simulator, self.y_obs, self.prior, self.bounds, sim_out_den=None, n_m=ni, n_theta=ni, n_grid_out=self.n_grid_out, thetas=thetas, verbose=self.verbose, penalty=self.penalty, n_jobs=self.n_jobs, clfy=self.clfy)
+			if thetas is not None: self.lfi.thetas = thetas
+			self.lfi.posterior = np.zeros(self.lfi.thetas.shape[0])
+			self.clfy_score = np.zeros(self.lfi.thetas.shape[0])
+			for i, theta in enumerate(self.lfi.thetas):
+				r0, s0 = self.lfi.ratio(theta, sim_out_num=sim_out_num, get_score=True)
+				self.lfi.posterior[i] = r0
+				self.clfy_score[i] = s0
+				if self.verbose:
+					if np.array(theta).size==1: theta = [theta]
+					msg = ','.join(['{0:.3f}'.format(th) for th in theta]) 
+					print('Pr({0:}) = {1:.5f}'.format(msg,r0))
+					print('Completed: {0:.2f} %'.format(100*(i+1)/self.lfi.thetas.shape[0]))
+			print(ni,self.clfy_score.mean())
+			self.clfy_score_mean[ni] = self.clfy_score.mean()
 
 
 
 class LFIRE_BayesianOpt:
-	def __init__(self, simulator, observation, prior, bounds, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, thetas=None, verbose=True, penalty='l1', n_jobs=4, clfy=None):
-		#self.N_init  = N_init
-		self.simulator = simulator
-		#self.distance  = distance
-		self.verbose = verbose
-		self.penalty = penalty
-		self.y_obs = observation
-		self.param_names = [kk for kk in prior]
-		self.param_bound = bounds
-		self.bounds = np.array([bounds[kk] for kk in self.param_names])
-		self.n_m = n_m
-		self.n_theta = n_theta
+	def __init__(self, simulator, observation, prior, bounds, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, thetas=None, n_init=10, max_iter=1000, tol=1e-5, verbose=True, penalty='l1', n_jobs=4, clfy=None, lfire=None, simulate_corner=True):
+		self.n_init     = n_init
+		self.max_iter   = max_iter
+		self.tol        = tol
+		self.n_m        = n_m 
+		self.n_theta    = n_theta
 		self.n_grid_out = n_grid_out
+
+		self.simulator = simulator
+		self.verbose   = verbose
+		self.penalty   = penalty
+		self.y_obs  = observation
+		self.prior  = prior
+		self.bounds = bounds
+		self.thetas = thetas
 		self.n_jobs = n_jobs
-		self.clfy    = clfy
+		self.clfy   = clfy
 
-		if sim_out_den is not None: 
-			self.sim_out_den = sim_out_den
-			self.n_theta = sim_out_den.shape[0]
-		else: 
-			self.sim_denominator()  
+		self.lfire = LFIRE if lfire is None else lfire
+		self.gpr = GaussianProcessRegressor()
 
-		if thetas is None: self.theta_grid()
+		self.lfi = self.lfire(self.simulator, self.y_obs, self.prior, self.bounds, sim_out_den=None, n_m=self.n_m, n_theta=self.n_theta, n_grid_out=self.n_grid_out, thetas=thetas, verbose=self.verbose, penalty=self.penalty, n_jobs=self.n_jobs, clfy=self.clfy)
+		self.theta_out = self.lfi.thetas
+
+		params_corner = self.corner_to_theta() if simulate_corner else None
+		self.params   = np.array([[self.lfi.sample_prior(kk) for kk in self.lfi.param_names] for i in range(self.n_init if params_corner is None else self.n_init-params_corner.shape[0])]).squeeze()
+		if params_corner is not None: self.params = np.concatenate((params_corner, self.params), axis=0)
+
+		self.JS_dist = []
+		self.posterior_theta = []
+
+	def corner_to_theta(self):
+		pa = _grid_bounds(self.lfi.bounds, n_grid=2)
+		return pa
+
+	def _adjust_shape(self, abc):
+		return abc.reshape(-1,1) if abc.ndim==1 else abc
+
+	def run(self, max_iter=None, tol=None):
+		if max_iter is not None: self.max_iter = max_iter
+		if tol is not None: self.tol = tol
+		# Initial grid
+		self.posterior_params = np.zeros(self.params.shape[0])
+		if len(self.posterior_theta)==0: #start_iter<self.n_init:
+			print('Initializing in a coarse parameter space.')
+			for i, theta in enumerate(self.params):
+				r0 = self.lfi.ratio(theta)
+				self.posterior_params[i] = r0
+				if self.verbose:
+					if np.array(theta).size==1: theta = [theta]
+					msg = ','.join(['{0:.3f}'.format(th) for th in theta]) 
+					print('Pr({0:}) = {1:.5f}'.format(msg,r0))
+					print('Completed: {0:.2f} %'.format(100*(i+1)/self.params.shape[0]))
+
+		X, y = self._adjust_shape(self.params), self.posterior_params
+		self.gpr.fit(X, y)
+		posterior_theta_next = self.gpr.predict(self._adjust_shape(self.theta_out))
+		posterior_theta_next[posterior_theta_next<0] = 0
+		posterior_theta_next[posterior_theta_next>1] = 1
+		self.posterior_theta.append(posterior_theta_next)
+
+		# Next points
+		print('Further sampling the parameter space with Bayesian Optimisation.')
+		start_iter = self.params.size
+		condition1 = False
+		for n_iter in range(start_iter,self.max_iter):
+			if condition1: break
+			X_next = bopt.propose_location(bopt.expected_improvement, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10).T
+			self.params = np.vstack((self._adjust_shape(lfi.params), X_next))
+			r_next = self.lfi.ratio(self.params[-1])
+			self.posterior_params = np.hstack((self.posterior_params, r_next))
+	
+			posterior_theta_old  = posterior_theta_next
+			X, y = self._adjust_shape(self.params), self.posterior_params
+			self.gpr.fit(X, y)
+			posterior_theta_next = self.gpr.predict(self._adjust_shape(self.theta_out))
+			posterior_theta_next[posterior_theta_next<0] = 0
+			posterior_theta_next[posterior_theta_next>1] = 1
+			self.posterior_theta.append(posterior_theta_next)
+			js = distances.jensenshannon(posterior_theta_old, posterior_theta_next)
+			self.JS_dist.append(js)
+
+			if self.verbose:
+				msg = ','.join(['{0:.3f}'.format(th) for th in self.params[-1]]) 
+				print('Pr({0:}) = {1:.5f}'.format(msg,r_next))
+				print('JS = {0:.5f}'.format(js))
+
+			condition1 = js<self.tol
 
 
 
