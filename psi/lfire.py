@@ -211,7 +211,7 @@ class LFIRE_BayesianOpt:
 		for n_iter in range(start_iter,self.max_iter):
 			if condition1: break
 			X_next = bopt.propose_location(bopt.expected_improvement, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10).T
-			self.params = np.vstack((self._adjust_shape(lfi.params), X_next))
+			self.params = np.vstack((self._adjust_shape(self.params), X_next))
 			r_next = self.lfi.ratio(self.params[-1])
 			self.posterior_params = np.hstack((self.posterior_params, r_next))
 	
