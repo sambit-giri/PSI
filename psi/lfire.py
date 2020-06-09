@@ -236,6 +236,7 @@ class LFIRE_BayesianOpt:
 
 		self.posterior = self.posterior_theta[-1]
 		self.thetas    = self.theta_out
+		self.param_names = self.lfi.param_names
 
 
 
