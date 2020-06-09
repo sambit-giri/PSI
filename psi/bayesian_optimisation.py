@@ -45,6 +45,7 @@ def propose_location(acquisition, X_sample, Y_sample, gpr, bounds, n_restarts=25
         X_sample: Sample locations (n x d).
         Y_sample: Sample values (n x 1).
         gpr: A GaussianProcessRegressor fitted to samples.
+        xi : Tuning parameter, such as Exploitation-exploration trade-off parameter.
 
     Returns:
         Location of the acquisition function maximum.
@@ -66,7 +67,34 @@ def propose_location(acquisition, X_sample, Y_sample, gpr, bounds, n_restarts=25
             
     return min_x.reshape(-1, 1)
 
-def GP_UCB(X_sample, Y_sample, gpr, bounds, beta=1, n_restarts=25):
+
+def propose_location_GP_UCB(X_sample, Y_sample, gpr, bounds, beta=1, n_restarts=25):
     return None
+
+
+def GP_UCB_posterior_space(X, X_sample, Y_sample, gpr, xi=1):
+    '''
+    Computes the Upper Confidence Bound (UCB) at points X based on existing samples X_sample
+    and Y_sample using a Gaussian process surrogate model.
+    With this acquisition function, we want to find the space maximises.
+    
+    Args:
+        X: Points at which UCB shall be computed (m x d).
+        X_sample: Sample locations (n x d).
+        Y_sample: Sample values (n x 1).
+        gpr: A GaussianProcessRegressor fitted to samples.
+        xi: Exploitation-exploration trade-off parameter.
+    
+    Returns:
+        Expected improvements at points X.
+    '''
+    mu, sigma = gpr.predict(X, return_std=True)
+    mu_sample = gpr.predict(X_sample)
+
+    sigma = sigma.reshape(-1, 1)
+
+    ucb = mu + xi*sigma
+
+    return ucb
 
 
