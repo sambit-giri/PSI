@@ -217,7 +217,7 @@ class LFIRE_BayesianOpt:
 			r_next = self.lfi.ratio(self.params[-1])
 			self.posterior_params = np.hstack((self.posterior_params, r_next))
 	
-			posterior_theta_old  = posterior_theta_next
+			posterior_theta_old  = self.posterior_theta[-1]
 			X, y = self._adjust_shape(self.params), self.posterior_params
 			self.gpr.fit(X, y)
 			posterior_theta_next = self.gpr.predict(self._adjust_shape(self.theta_out))
