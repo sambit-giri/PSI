@@ -234,8 +234,8 @@ class LFIRE_BayesianOpt:
 
 			condition1 = js<self.tol
 
-		self.posterior = self.lfi.posterior
-		self.thetas    = self.lfi.thetas
+		self.posterior = self.posterior_theta[-1]
+		self.thetas    = self.theta_out
 
 
 
