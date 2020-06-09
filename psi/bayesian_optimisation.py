@@ -36,7 +36,7 @@ def expected_improvement(X, X_sample, Y_sample, gpr, xi=0.01):
     return ei
 
 
-def propose_location(acquisition, X_sample, Y_sample, gpr, bounds, n_restarts=25):
+def propose_location(acquisition, X_sample, Y_sample, gpr, bounds, n_restarts=25, xi=1):
     '''
     Proposes the next sampling point by optimizing the acquisition function.
     
@@ -45,6 +45,8 @@ def propose_location(acquisition, X_sample, Y_sample, gpr, bounds, n_restarts=25
         X_sample: Sample locations (n x d).
         Y_sample: Sample values (n x 1).
         gpr: A GaussianProcessRegressor fitted to samples.
+        bounds: The lower and upper bounds of your X space.
+        n_restarts: Number of times to restart minimser from a different random start point.
         xi : Tuning parameter, such as Exploitation-exploration trade-off parameter.
 
     Returns:
@@ -67,9 +69,6 @@ def propose_location(acquisition, X_sample, Y_sample, gpr, bounds, n_restarts=25
             
     return min_x.reshape(-1, 1)
 
-
-def propose_location_GP_UCB(X_sample, Y_sample, gpr, bounds, beta=1, n_restarts=25):
-    return None
 
 
 def GP_UCB_posterior_space(X, X_sample, Y_sample, gpr, xi=1):

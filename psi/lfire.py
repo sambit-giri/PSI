@@ -143,7 +143,7 @@ class LFIRE_TrainingSetAuto:
 
 
 class LFIRE_BayesianOpt:
-	def __init__(self, simulator, observation, prior, bounds, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, thetas=None, n_init=10, max_iter=1000, tol=1e-5, verbose=True, penalty='l1', n_jobs=4, clfy=None, lfire=None, simulate_corner=True):
+	def __init__(self, simulator, observation, prior, bounds, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, thetas=None, n_init=10, max_iter=1000, tol=1e-5, verbose=True, penalty='l1', n_jobs=4, clfy=None, lfire=None, simulate_corner=True, exploitation_exploration=1):
 		self.n_init     = n_init
 		self.max_iter   = max_iter
 		self.tol        = tol
@@ -160,6 +160,7 @@ class LFIRE_BayesianOpt:
 		self.thetas = thetas
 		self.n_jobs = n_jobs
 		self.clfy   = clfy
+		self.exploitation_exploration = exploitation_exploration
 
 		self.lfire = LFIRE if lfire is None else lfire
 		self.gpr = GaussianProcessRegressor()
@@ -211,7 +212,7 @@ class LFIRE_BayesianOpt:
 		for n_iter in range(start_iter,self.max_iter):
 			if condition1: break
 			#X_next = bopt.propose_location(bopt.expected_improvement, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10).T
-			X_next = bopt.propose_location(bopt.GP_UCB_posterior_space, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10).T
+			X_next = bopt.propose_location(bopt.GP_UCB_posterior_space, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10, xi=self.exploitation_exploration).T
 			self.params = np.vstack((self._adjust_shape(self.params), X_next))
 			r_next = self.lfi.ratio(self.params[-1])
 			self.posterior_params = np.hstack((self.posterior_params, r_next))
