@@ -45,6 +45,7 @@ bounds = {'m': [-2.5, 0.5]}#, 'c': [0,10]}
 lfi = psi.LFIRE_BayesianOpt(simulator, y_obs, prior, bounds, exploitation_exploration=1, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, n_init=10, max_iter=1000, tol=1e-5)
 lfi.run()
 
+psi.corner.plot_lfire(lfi)
 
 # 2 param
 simulator2 = lambda x: line.simulator(x[0], x[1])
@@ -53,10 +54,10 @@ simulator2 = lambda x: line.simulator(x[0], x[1])
 prior2  = {'m': 'uniform', 'c': 'uniform'}
 bounds2 = {'m': [-2.5, 0.5], 'c': [0,10]}
 
-lfi2 = psi.LFIRE_BayesianOpt(simulator2, y_obs, prior2, bounds2, exploitation_exploration=1, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, n_init=10, max_iter=1000, tol=1e-5)
+lfi2 = psi.LFIRE_BayesianOpt(simulator2, y_obs, prior2, bounds2, exploitation_exploration=5, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, n_init=10, max_iter=1000, tol=1e-5)
 lfi2.run()
 
-
+psi.corner.plot_lfire(lfi2)
 
 
 

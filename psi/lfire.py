@@ -231,7 +231,7 @@ class LFIRE_BayesianOpt:
 				msg = ','.join(['{0:.3f}'.format(th) for th in self.params[-1]]) 
 				print('Pr({0:}) = {1:.5f}'.format(msg,r_next))
 				print('JS = {0:.5f}'.format(js))
-				print('Completed: {0:.2f} %'.format(100*(i+1)/self.params.shape[0]))
+				print('Completed: {0:.2f} %'.format(100*(n_iter+1)/self.max_iter))
 
 			condition1 = js<self.tol
 
