@@ -92,6 +92,7 @@ def GP_UCB_posterior_space(X, X_sample, Y_sample, gpr, xi=1):
 
     sigma = sigma.reshape(-1, 1)
 
+    #ucb = mu + xi*sigma
     ucb = mu + xi*sigma
 
     return ucb
