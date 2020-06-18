@@ -122,23 +122,26 @@ class LFIRE_TrainingSetAuto:
 
 	def run(self, thetas=None, n_grid_out=100, sim_out_num=None):
 		self.clfy_score_mean = {}
-		self.Ns = np.arange(self.n_init, self.n_max, self.n_step)
-		for ni in self.Ns:
-			self.lfi = self.lfire(self.simulator, self.y_obs, self.prior, self.bounds, sim_out_den=None, n_m=ni, n_theta=ni, n_grid_out=self.n_grid_out, thetas=thetas, verbose=self.verbose, penalty=self.penalty, n_jobs=self.n_jobs, clfy=self.clfy)
-			if thetas is not None: self.lfi.thetas = thetas
-			self.lfi.posterior = np.zeros(self.lfi.thetas.shape[0])
-			self.clfy_score = np.zeros(self.lfi.thetas.shape[0])
-			for i, theta in enumerate(self.lfi.thetas):
-				r0, s0 = self.lfi.ratio(theta, sim_out_num=sim_out_num, get_score=True)
-				self.lfi.posterior[i] = r0
-				self.clfy_score[i] = s0
-				if self.verbose:
-					if np.array(theta).size==1: theta = [theta]
-					msg = ','.join(['{0:.3f}'.format(th) for th in theta]) 
-					print('Pr({0:}) = {1:.5f}'.format(msg,r0))
-					print('Completed: {0:.2f} %'.format(100*(i+1)/self.lfi.thetas.shape[0]))
-			print(ni,self.clfy_score.mean())
-			self.clfy_score_mean[ni] = self.clfy_score.mean()
+		#self.Ns = []
+		Ns_m = np.arange(self.n_init, self.n_max, self.n_step).astype(int)
+		Ns_theta = np.arange(self.n_init, self.n_max, self.n_step).astype(int)
+		for ni_m in Ns_m:
+			for ni_t in Ns_theta:
+				self.lfi = self.lfire(self.simulator, self.y_obs, self.prior, self.bounds, sim_out_den=None, n_m=ni_m, n_theta=ni_t, n_grid_out=self.n_grid_out, thetas=thetas, verbose=self.verbose, penalty=self.penalty, n_jobs=self.n_jobs, clfy=self.clfy)
+				if thetas is not None: self.lfi.thetas = thetas
+				self.lfi.posterior = np.zeros(self.lfi.thetas.shape[0])
+				self.clfy_score = np.zeros(self.lfi.thetas.shape[0])
+				for i, theta in enumerate(self.lfi.thetas):
+					r0, s0 = self.lfi.ratio(theta, sim_out_num=sim_out_num, get_score=True)
+					self.lfi.posterior[i] = r0
+					self.clfy_score[i] = s0
+					if self.verbose:
+						if np.array(theta).size==1: theta = [theta]
+						msg = ','.join(['{0:.3f}'.format(th) for th in theta]) 
+						print('Pr({0:}) = {1:.5f}'.format(msg,r0))
+						print('Completed: {0:.2f} %'.format(100*(i+1)/self.lfi.thetas.shape[0]))
+				print(ni,self.clfy_score.mean())
+				self.clfy_score_mean[ni_m,ni] = self.clfy_score.mean()
 
 
 

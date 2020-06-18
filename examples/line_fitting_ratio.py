@@ -42,7 +42,7 @@ simulator = lambda x: line.simulator(x, line.true_intercept)
 prior  = {'m': 'uniform'}#, 'c': 'uniform'}
 bounds = {'m': [-2.5, 0.5]}#, 'c': [0,10]}
 
-lfi = psi.LFIRE_BayesianOpt(simulator, y_obs, prior, bounds, exploitation_exploration=1, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, n_init=10, max_iter=1000, tol=1e-4)
+lfi = psi.LFIRE_BayesianOpt(simulator, y_obs, prior, bounds, exploitation_exploration=None, sigma_tol=0.01, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, n_init=10, max_iter=1000, tol=1e-4)
 lfi.run()
 
 psi.corner.plot_lfire(lfi)
