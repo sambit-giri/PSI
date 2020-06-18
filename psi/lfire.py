@@ -143,7 +143,7 @@ class LFIRE_TrainingSetAuto:
 
 
 class LFIRE_BayesianOpt:
-	def __init__(self, simulator, observation, prior, bounds, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, thetas=None, n_init=10, max_iter=1000, tol=1e-5, verbose=True, penalty='l1', n_jobs=4, clfy=None, lfire=None, simulate_corner=True, exploitation_exploration=None, std_max=0.01):
+	def __init__(self, simulator, observation, prior, bounds, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, thetas=None, n_init=10, max_iter=1000, tol=1e-5, verbose=True, penalty='l1', n_jobs=4, clfy=None, lfire=None, simulate_corner=True, exploitation_exploration=None, sigma_tol=0.01):
 		self.n_init     = n_init
 		self.max_iter   = max_iter
 		self.tol        = tol
@@ -161,7 +161,7 @@ class LFIRE_BayesianOpt:
 		self.n_jobs = n_jobs
 		self.clfy   = clfy
 		self.exploitation_exploration = exploitation_exploration
-		self.std_max = std_max
+		self.sigma_tol = sigma_tol
 
 		self.lfire = LFIRE if lfire is None else lfire
 		self.gpr = GaussianProcessRegressor()
