@@ -60,5 +60,9 @@ lfi2.run()
 psi.corner.plot_lfire(lfi2)
 
 
+## Nuisance parameters
+lfi2 = psi.LFIRE_TrainingSetAuto(simulator2, y_obs, prior2, bounds2, n_init=10, n_step=1, n_max=100, n_grid_out=5, thetas=None, verbose=True, penalty='l1', n_jobs=4, clfy=None, lfire=None))
+
+
 
 
