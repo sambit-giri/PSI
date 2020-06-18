@@ -71,7 +71,7 @@ def propose_location(acquisition, X_sample, Y_sample, gpr, bounds, n_restarts=25
 
 
 
-def GP_UCB_posterior_space(X, X_sample, Y_sample, gpr, xi=1):
+def GP_UCB_posterior_space(X, X_sample, Y_sample, gpr, xi=100):
     '''
     Computes the Upper Confidence Bound (UCB) at points X based on existing samples X_sample
     and Y_sample using a Gaussian process surrogate model.
@@ -92,8 +92,8 @@ def GP_UCB_posterior_space(X, X_sample, Y_sample, gpr, xi=1):
 
     sigma = sigma.reshape(-1, 1)
 
-    #ucb = mu + xi*sigma
-    ucb = xi*sigma
+    ucb = mu + xi*sigma
+    #ucb = xi*sigma
 
     return ucb
 
