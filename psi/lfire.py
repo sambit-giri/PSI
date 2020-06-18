@@ -201,7 +201,7 @@ class LFIRE_BayesianOpt:
 
 		X, y = self._adjust_shape(self.params), self.posterior_params
 		self.gpr.fit(X, y)
-		posterior_theta_next = self.gpr.predict(self._adjust_shape(self.theta_out))
+		posterior_theta_next, sigma_theta = self.gpr.predict(self._adjust_shape(self.theta_out), return_std=True)
 		posterior_theta_next[posterior_theta_next<0] = 0
 		posterior_theta_next[posterior_theta_next>1] = 1
 		self.posterior_theta.append(posterior_theta_next)
@@ -214,8 +214,11 @@ class LFIRE_BayesianOpt:
 			if condition1: 
 				print('Stopped as extreme tolerance reached.')
 				break
+
+			if self.sigma_tol is not None:
+				self.exploitation_exploration = 1./self.sigma_tol if np.any(sigma_theta>self.sigma_tol) else 1.
 			#X_next = bopt.propose_location(bopt.expected_improvement, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10).T
-			X_next = bopt.propose_location(bopt.GP_UCB_posterior_space, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10, xi=self.exploitation_exploration, sigma_tol=self.std_max).T
+			X_next = bopt.propose_location(bopt.GP_UCB_posterior_space, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10, xi=self.exploitation_exploration).T
 			self.params = np.vstack((self._adjust_shape(self.params), X_next))
 			r_next = self.lfi.ratio(self.params[-1])
 			self.posterior_params = np.hstack((self.posterior_params, r_next))
@@ -223,7 +226,7 @@ class LFIRE_BayesianOpt:
 			posterior_theta_old  = self.posterior_theta[-1]
 			X, y = self._adjust_shape(self.params), self.posterior_params
 			self.gpr.fit(X, y)
-			posterior_theta_next = self.gpr.predict(self._adjust_shape(self.theta_out))
+			posterior_theta_next, sigma_theta = self.gpr.predict(self._adjust_shape(self.theta_out), return_std=True)
 			posterior_theta_next[posterior_theta_next<0] = 0
 			posterior_theta_next[posterior_theta_next>1] = 1
 			self.posterior_theta.append(posterior_theta_next)
