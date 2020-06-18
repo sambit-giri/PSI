@@ -143,7 +143,7 @@ class LFIRE_TrainingSetAuto:
 
 
 class LFIRE_BayesianOpt:
-	def __init__(self, simulator, observation, prior, bounds, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, thetas=None, n_init=10, max_iter=1000, tol=1e-5, verbose=True, penalty='l1', n_jobs=4, clfy=None, lfire=None, simulate_corner=True, exploitation_exploration=1):
+	def __init__(self, simulator, observation, prior, bounds, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, thetas=None, n_init=10, max_iter=1000, tol=1e-5, verbose=True, penalty='l1', n_jobs=4, clfy=None, lfire=None, simulate_corner=True, exploitation_exploration=None, std_max=0.01):
 		self.n_init     = n_init
 		self.max_iter   = max_iter
 		self.tol        = tol
@@ -161,6 +161,7 @@ class LFIRE_BayesianOpt:
 		self.n_jobs = n_jobs
 		self.clfy   = clfy
 		self.exploitation_exploration = exploitation_exploration
+		self.std_max = std_max
 
 		self.lfire = LFIRE if lfire is None else lfire
 		self.gpr = GaussianProcessRegressor()
@@ -210,9 +211,11 @@ class LFIRE_BayesianOpt:
 		start_iter = self.params.size
 		condition1 = False
 		for n_iter in range(start_iter,self.max_iter):
-			if condition1: break
+			if condition1: 
+				print('Stopped as extreme tolerance reached.')
+				break
 			#X_next = bopt.propose_location(bopt.expected_improvement, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10).T
-			X_next = bopt.propose_location(bopt.GP_UCB_posterior_space, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10, xi=self.exploitation_exploration).T
+			X_next = bopt.propose_location(bopt.GP_UCB_posterior_space, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10, xi=self.exploitation_exploration, sigma_tol=self.std_max).T
 			self.params = np.vstack((self._adjust_shape(self.params), X_next))
 			r_next = self.lfi.ratio(self.params[-1])
 			self.posterior_params = np.hstack((self.posterior_params, r_next))
@@ -241,7 +244,7 @@ class LFIRE_BayesianOpt:
 
 
 class LFIRE_BayesianOpt_ShrinkSpace:
-	def __init__(self, simulator, observation, prior, bounds, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, thetas=None, n_init=10, max_iter=1000, shrink_CI=[95,68], tol=1e-5, verbose=True, penalty='l1', n_jobs=4, clfy=None, lfire=None, simulate_corner=True, exploitation_exploration=1):
+	def __init__(self, simulator, observation, prior, bounds, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, thetas=None, n_init=10, max_iter=1000, shrink_condition={'CI':95, 'n':5}, tol=1e-5, verbose=True, penalty='l1', n_jobs=4, clfy=None, lfire=None, simulate_corner=True, exploitation_exploration=1):
 		self.n_init     = n_init
 		self.tol        = tol
 		self.n_m        = n_m 
@@ -251,7 +254,7 @@ class LFIRE_BayesianOpt_ShrinkSpace:
 		self.shrink_CI = shrink_CI
 		self.max_iter  = [max_iter for i in range(len(shrink_CI)+1)] if isinstance(max_iter, (int)) else max_iter
 		self.max_iter_tot = np.array(self.max_iter).sum()
-		
+
 		self.simulator = simulator
 		self.verbose   = verbose
 		self.penalty   = penalty
@@ -297,7 +300,7 @@ class LFIRE_BayesianOpt_ShrinkSpace:
 					if np.array(theta).size==1: theta = [theta]
 					msg = ','.join(['{0:.3f}'.format(th) for th in theta]) 
 					print('Pr({0:}) = {1:.5f}'.format(msg,r0))
-					print('Completed: {0:.2f} %'.format(100*(i+1)/self.max_iter))
+					print('Completed: {0:.2f} %'.format(100*(i+1)/self.max_iter_tot))
 
 		X, y = self._adjust_shape(self.params), self.posterior_params
 		self.gpr.fit(X, y)
@@ -310,7 +313,7 @@ class LFIRE_BayesianOpt_ShrinkSpace:
 		print('Further sampling the parameter space with Bayesian Optimisation.')
 		start_iter = self.params.size
 		condition1 = False
-		for n_iter in range(start_iter,self.max_iter):
+		for n_iter in range(start_iter,self.max_iter[0]):
 			if condition1: break
 			#X_next = bopt.propose_location(bopt.expected_improvement, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10).T
 			X_next = bopt.propose_location(bopt.GP_UCB_posterior_space, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10, xi=self.exploitation_exploration).T
@@ -332,7 +335,7 @@ class LFIRE_BayesianOpt_ShrinkSpace:
 				msg = ','.join(['{0:.3f}'.format(th) for th in self.params[-1]]) 
 				print('Pr({0:}) = {1:.5f}'.format(msg,r_next))
 				print('JS = {0:.5f}'.format(js))
-				print('Completed: {0:.2f} %'.format(100*(n_iter+1)/self.max_iter))
+				print('Completed: {0:.2f} %'.format(100*(n_iter+1)/self.max_iter_tot))
 
 			condition1 = js<self.tol
 
