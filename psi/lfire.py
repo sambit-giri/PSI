@@ -141,7 +141,7 @@ class LFIRE_TrainingSetAuto:
 						print('Pr({0:}) = {1:.5f}'.format(msg,r0))
 						print('Completed: {0:.2f} %'.format(100*(i+1)/self.lfi.thetas.shape[0]))
 				print(ni_m,ni_t,self.clfy_score.mean())
-				self.clfy_score_mean[ni_m,ni] = self.clfy_score.mean()
+				self.clfy_score_mean[ni_m,ni_t] = self.clfy_score.mean()
 
 
 
