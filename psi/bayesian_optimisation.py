@@ -39,6 +39,7 @@ def expected_improvement(X, X_sample, Y_sample, gpr, xi=0.01):
 def propose_location(acquisition, X_sample, Y_sample, gpr, bounds, n_restarts=25, xi=1):
     '''
     Proposes the next sampling point by optimizing the acquisition function.
+    It maximises the acquisition function.
     
     Args:
         acquisition: Acquisition function.
@@ -97,4 +98,29 @@ def GP_UCB_posterior_space(X, X_sample, Y_sample, gpr, xi=100):
 
     return ucb
 
+def negativeGP_LCB(X, X_sample, Y_sample, gpr, xi=100):
+    '''
+    Computes the Lower Confidence Bound (UCB) at points X based on existing samples X_sample
+    and Y_sample using a Gaussian process surrogate model.
+    With this acquisition function, we want to find the space maximises.
+    
+    Args:
+        X: Points at which UCB shall be computed (m x d).
+        X_sample: Sample locations (n x d).
+        Y_sample: Sample values (n x 1).
+        gpr: A GaussianProcessRegressor fitted to samples.
+        xi: Exploitation-exploration trade-off parameter.
+    
+    Returns:
+        Expected improvements at points X.
+    '''
+    mu, sigma = gpr.predict(X, return_std=True)
+    mu_sample = gpr.predict(X_sample)
+
+    sigma = sigma.reshape(-1, 1)
+
+    lcb = mu - xi*sigma
+    #lcb = xi*sigma
+
+    return -lcb
 
