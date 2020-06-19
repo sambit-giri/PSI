@@ -144,7 +144,7 @@ class BOLFI:
 		X = params.reshape(-1,1) if params.ndim==1 else params
 		y = dists.reshape(-1,1) if dists.ndim==1 else dists
 
-		n_cv = 10 if y.size>20 else 5
+		n_cv = 10 if y.size>50 else 5
 		kf = KFold(n_splits=n_cv)
 		pdfs = []
 		for train_index, test_index in kf.split(X):
