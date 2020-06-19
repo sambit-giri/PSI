@@ -54,7 +54,7 @@ def propose_location(acquisition, X_sample, Y_sample, gpr, bounds, n_restarts=25
         Location of the acquisition function maximum.
     '''
     dim = X_sample.shape[1]
-    min_val = 1
+    min_val = Y_sample.min()#1
     min_x = None
     
     def min_obj(X):
