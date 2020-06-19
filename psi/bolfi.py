@@ -188,7 +188,7 @@ class BOLFI:
 			y = self.dists.reshape(-1,1) if self.dists.ndim==1 else self.dists
 
 			if self.sigma_tol is not None:
-				self.exploitation_exploration = 1./self.sigma_tol if np.any(sigma_theta>self.sigma_tol) else 1.
+				self.exploitation_exploration = 1./self.sigma_tol if np.any(self.sigma_theta>self.sigma_tol) else 1.
 			#X_next = bopt.propose_location(bopt.expected_improvement, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10).T
 			X_next = bopt.propose_location(bopt.negativeGP_LCB, X, y, self.gpr, self.bounds, n_restarts=10, xi=self.exploitation_exploration).T
 
