@@ -3,7 +3,7 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from importlib import reload
 import psi
 
-yerr_param = [0.0, 2.5]#[0.1, 0.5]
+yerr_param = [-1, 2.0]#[0.1, 1.5]
 line  = psi.sample_models.noisy_line(yerr_param=yerr_param)
 xs    = line.xs()
 y_obs = line.observation()
@@ -21,12 +21,12 @@ prior  = {'m': 'uniform'}#, 'c': 'uniform'}
 bounds = {'m': [-2.5, 0.5]}#, 'c': [0,10]}
 gpr = GaussianProcessRegressor()
 
-rn = psi.BOLFI_1param(simulator, distance, y_obs, prior, bounds, N_init=5, gpr=gpr)
+rn = psi.BOLFI_1param(simulator, distance, y_obs, prior, bounds, N_init=10, gpr=gpr, max_iter=10)
 rn.run()
 
 #Plot
 plt.subplot(121)
-plt.plot(rn.xout, rn.post_mean_normmax[25])
+plt.plot(rn.xout, rn.post_mean_normmax[-1])
 #plt.plot(rn.successive_JS_dist, c='C0')
 plt.subplot(122)
 plt.plot(rn.cv_JS_dist['mean'], c='C1')	

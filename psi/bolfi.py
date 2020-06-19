@@ -69,7 +69,7 @@ class BOLFI_1param:
 		unnorm_post_mean = np.exp(-y_pred/2.)
 		self.post_mean_unnorm.append(unnorm_post_mean)
 		self.post_mean_normmax.append(unnorm_post_mean/unnorm_post_mean.max())
-		return cvdist.std()
+		return self.cv_JS_dist['mean'][-1] #cvdist.std()
 
 	def run(self, max_iter=None):
 		if max_iter is not None: self.max_iter = max_iter
@@ -102,11 +102,13 @@ class BOLFI_1param:
 
 			self.params = np.append(self.params, X_next) 
 			self.dists  = np.append(self.dists, d_next)
-			msg = self.fit_model(self.params, self.dists)
-			hf.loading_verbose('{0:6d}|{1:.6f}'.format(n_iter+1,msg))
 			sucJSdist   = distances.jensenshannon(self.post_mean_normmax[-1], self.post_mean_normmax[-2])[0]
 			self.successive_JS_dist.append(sucJSdist)
-			condition1 = self.cv_JS_dist['mean'][-1]+self.cv_JS_dist['std'][-1]<self.cv_JS_tol
+
+			msg = self.fit_model(self.params, self.dists)
+			hf.loading_verbose('{0:6d}|{1:.6f}|{1:.6f}'.format(n_iter+1,msg,sucJSdist))
+			#condition1 = self.cv_JS_dist['mean'][-1]+self.cv_JS_dist['std'][-1]<self.cv_JS_tol
+			condition1 = self.cv_JS_dist['mean'][-1]<self.cv_JS_tol
 			condition2 = self.successive_JS_dist[-1]<self.successive_JS_tol
 
 class BOLFI:
