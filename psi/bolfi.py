@@ -114,7 +114,7 @@ class BOLFI_1param:
 			condition2 = self.successive_JS_dist[-1]<self.successive_JS_tol
 
 class BOLFI:
-	def __init__(self, simulator, distance, observation, prior, bounds, N_init=5, gpr=None, max_iter=100, cv_JS_tol=0.01, successive_JS_tol=0.01, n_grid_out=100, exploitation_exploration=None, sigma_tol=0.001):
+	def __init__(self, simulator, distance, observation, prior, bounds, N_init=5, gpr=None, max_iter=100, cv_JS_tol=0.01, successive_JS_tol=0.01, n_grid_out=100, exploitation_exploration=None, sigma_tol=0.001, inside_nSphere=True, fill_value=100):
 		self.N_init  = N_init
 		self.gpr = GaussianProcessRegressor() if gpr is None else gpr
 		self.simulator = simulator
@@ -123,6 +123,8 @@ class BOLFI:
 		self.param_names = [kk for kk in prior]
 		self.param_bound = bounds
 		self.bounds = np.array([bounds[kk] for kk in self.param_names])
+		self.bound_mins = self.bounds.min(axis=1)
+		self.bound_maxs = self.bounds.max(axis=1)
 		#self.sample_prior = {}
 		#for i,kk in enumerate(self.param_names):
 		#	self.sample_prior[kk] = lambda: bounds[kk][0]+(bounds[kk][1]-bounds[kk][0])*np.random.uniform()
@@ -138,9 +140,17 @@ class BOLFI:
 
 		self.exploitation_exploration = exploitation_exploration
 		self.sigma_tol = sigma_tol	
+		self.inside_nSphere = inside_nSphere
+		self.fill_value = fill_value
 
 	def sample_prior(self, kk):
 		return self.param_bound[kk][0]+(self.param_bound[kk][1]-self.param_bound[kk][0])*np.random.uniform()
+
+	def _simulator(self, x):
+		if self.inside_nSphere:
+			xr = np.sum(((x-self.bound_mins)/(self.bound_maxs-self.bound_mins)-0.5)**2)
+			if xr>=0.5: return self.fill_value
+		return simulator(x)
 
 	def fit_model(self, params, dists):
 		X = params.reshape(-1,1) if params.ndim==1 else params
@@ -176,7 +186,7 @@ class BOLFI:
 		# Initialization
 		if start_iter<self.N_init:
 			params  = np.array([[self.sample_prior(kk) for kk in self.param_names] for i in range(self.N_init)]).squeeze()
-			sim_out = np.array([self.simulator(i) for i in params])
+			sim_out = np.array([self._simulator(i) for i in params])
 			dists   = np.array([self.distance(self.y_obs, ss) for ss in sim_out])
 			self.params = params
 			self.dists  = dists
@@ -196,7 +206,7 @@ class BOLFI:
 			#X_next = bopt.propose_location(bopt.expected_improvement, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10).T
 			X_next = bopt.propose_location(bopt.negativeGP_LCB, X, y, self.gpr, self.bounds, n_restarts=10, xi=self.exploitation_exploration).T
 
-			y_next = self.simulator(X_next.T)
+			y_next = self._simulator(X_next.T)
 			d_next = self.distance(self.y_obs, y_next)
 
 			self.params = np.append(self.params, X_next, axis=0) 
