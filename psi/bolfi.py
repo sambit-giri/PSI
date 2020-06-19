@@ -146,11 +146,13 @@ class BOLFI:
 	def sample_prior(self, kk):
 		return self.param_bound[kk][0]+(self.param_bound[kk][1]-self.param_bound[kk][0])*np.random.uniform()
 
-	def _simulator(self, x):
+	def sim_n_dist(self, xi):
 		if self.inside_nSphere:
 			xr = np.sum(((x-self.bound_mins)/(self.bound_maxs-self.bound_mins)-0.5)**2)
-			if xr>=0.5: return self.fill_value
-		return self.simulator(x)
+			if xr>0.25: return self.fill_value
+		yi = self.simulator(xi)
+		di = self.distance(self.y_obs, yi)
+		return di
 
 	def fit_model(self, params, dists):
 		X = params.reshape(-1,1) if params.ndim==1 else params
@@ -186,8 +188,9 @@ class BOLFI:
 		# Initialization
 		if start_iter<self.N_init:
 			params  = np.array([[self.sample_prior(kk) for kk in self.param_names] for i in range(self.N_init)]).squeeze()
-			sim_out = np.array([self._simulator(i) for i in params])
-			dists   = np.array([self.distance(self.y_obs, ss) for ss in sim_out])
+			#sim_out = np.array([self._simulator(i) for i in params])
+			#dists   = np.array([self.distance(self.y_obs, ss) for ss in sim_out])
+			dists = np.array([self.sim_n_dist(i) for i in params])
 			self.params = params
 			self.dists  = dists
 			msg = self.fit_model(self.params, self.dists)
@@ -206,8 +209,9 @@ class BOLFI:
 			#X_next = bopt.propose_location(bopt.expected_improvement, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10).T
 			X_next = bopt.propose_location(bopt.negativeGP_LCB, X, y, self.gpr, self.bounds, n_restarts=10, xi=self.exploitation_exploration).T
 
-			y_next = self._simulator(X_next.T)
-			d_next = self.distance(self.y_obs, y_next)
+			#y_next = self._simulator(X_next.T)
+			#d_next = self.distance(self.y_obs, y_next)
+			d_next = self.sim_n_dist(X_next.T)
 
 			self.params = np.append(self.params, X_next, axis=0) 
 			self.dists  = np.append(self.dists, d_next)
