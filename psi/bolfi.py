@@ -102,7 +102,7 @@ class BOLFI_1param:
 
 			self.params = np.append(self.params, X_next) 
 			self.dists  = np.append(self.dists, d_next)
-			sucJSdist   = distances.jensenshannon(self.post_mean_normmax[-1], self.post_mean_normmax[-2])[0]
+			sucJSdist   = distances.jensenshannon(self.post_mean_normmax[-1], self.post_mean_normmax[-2])[0] if len(self.post_mean_normmax)>1 else 10
 			self.successive_JS_dist.append(sucJSdist)
 
 			msg = self.fit_model(self.params, self.dists)
