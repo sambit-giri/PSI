@@ -159,10 +159,12 @@ class BOLFI:
 		self.cv_JS_dist['std'].append(cvdist.std())
 		self.cv_JS_dist['mean'].append(cvdist.mean())
 		y_pred, y_std = self.gpr.predict(self.xout, return_std=True)
-		self.sigma_theta = y_std
 		unnorm_post_mean = np.exp(-y_pred/2.)
+		norm_post_mean   = unnorm_post_mean/unnorm_post_mean.max()
+		norm_post_std    = 0.5*y_std*norm_post_mean
+		self.sigma_theta = norm_post_std
 		self.post_mean_unnorm.append(unnorm_post_mean)
-		self.post_mean_normmax.append(unnorm_post_mean/unnorm_post_mean.max())
+		self.post_mean_normmax.append(norm_post_mean)
 		return self.cv_JS_dist['mean'][-1] #cvdist.std()
 
 	def run(self, max_iter=None, trained_gpr=True):
