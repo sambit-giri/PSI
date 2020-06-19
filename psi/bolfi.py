@@ -195,7 +195,7 @@ class BOLFI:
 			y_next = self.simulator(X_next.T)
 			d_next = self.distance(self.y_obs, y_next)
 
-			self.params = np.append(self.params, X_next) 
+			self.params = np.append(self.params, X_next, axis=0) 
 			self.dists  = np.append(self.dists, d_next)
 			sucJSdist   = distances.jensenshannon(self.post_mean_normmax[-1], self.post_mean_normmax[-2])[0] if len(self.post_mean_normmax)>1 else 10
 			self.successive_JS_dist.append(sucJSdist)
