@@ -1,5 +1,8 @@
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import (RBF, Matern, RationalQuadratic,
+                                              ExpSineSquared, DotProduct,
+                                              ConstantKernel)
 from importlib import reload
 import psi
 
@@ -21,7 +24,7 @@ prior  = {'m': 'uniform'}#, 'c': 'uniform'}
 bounds = {'m': [-2.5, 0.5]}#, 'c': [0,10]}
 gpr = GaussianProcessRegressor()
 
-rn = psi.BOLFI_1param(simulator, distance, y_obs, prior, bounds, N_init=10, gpr=gpr, max_iter=10)
+rn = psi.BOLFI_1param(simulator, distance, y_obs, prior, bounds, N_init=10, gpr=gpr, max_iter=100)
 rn.run()
 
 #Plot
@@ -39,8 +42,23 @@ prior  = {'m': 'uniform', 'c': 'uniform'}
 bounds = {'m': [-2.5, 0.5], 'c': [0,10]}
 gpr = GaussianProcessRegressor()
 
-rn = psi.BOLFI(simulator, distance, y_obs, prior, bounds, N_init=5, gpr=gpr, successive_JS_tol=0.02)
-rn.run()	
+kernel = Matern(length_scale=1.0, length_scale_bounds=(1e-1, 10.0), nu=1.5)
+gpr = GaussianProcessRegressor(kernel=kernel)
+
+rn = psi.BOLFI(simulator, distance, y_obs, prior, bounds, N_init=10, gpr=gpr, max_iter=100, sigma_tol=0.01, successive_JS_tol=0.02, inside_nSphere=False)
+#rn = psi.BOLFI_postGPR(simulator, distance, y_obs, prior, bounds, N_init=100, gpr=gpr, max_iter=100, sigma_tol=0.01, successive_JS_tol=0.02)
+rn.run()
+
+psi.corner.plot_2Dmarginal(
+    rn.xout,
+    rn.post_mean_normmax[-1].flatten(),
+    param_names=rn.param_names,
+    idx=0,
+    idy=1,
+    smooth=False,
+    true_values={'m': line.true_slope, 'c': line.true_intercept},
+    CI=[95],
+)	
 	
 ## JS over iterations
 plt.rcParams['figure.figsize'] = [12, 6]
@@ -59,7 +77,7 @@ plt.scatter(rn.params[:,0], rn.params[:,1], c=rn.dists, cmap='jet')
 plt.colorbar()
 plt.subplot(122)
 plt.title('Posterior')
-plt.scatter(rn.xout[:,0], rn.xout[:,1], c=rn.post_mean_normmax[-1].flatten(), cmap='jet')
+plt.scatter(rn.xout[:,0], rn.xout[:,1], c=rn.post_mean_normmax[-1].flatten(), cmap='Blues')
 plt.colorbar()
 plt.scatter(line.true_slope,line.true_intercept, marker='*', c='k')
 

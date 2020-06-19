@@ -164,7 +164,8 @@ class BOLFI:
 		for train_index, test_index in kf.split(X):
 			X_train, X_test = X[train_index], X[test_index]
 			y_train, y_test = y[train_index], y[test_index]
-			self.gpr.fit(X_train[np.isfinite(y_train)], y_train[np.isfinite(y_train)])
+			args = np.isfinite(y_train.flatten()) 
+			self.gpr.fit(X_train[args], y_train[args])
 			y_pred, y_std = self.gpr.predict(self.xout, return_std=True)
 			unnorm_post_mean = np.exp(-y_pred/2.)
 			pdfs.append(unnorm_post_mean)
@@ -172,6 +173,9 @@ class BOLFI:
 		cvdist = np.array([distances.jensenshannon(p1,p2) for p1 in pdfs for p2 in pdfs])
 		self.cv_JS_dist['std'].append(cvdist.std())
 		self.cv_JS_dist['mean'].append(cvdist.mean())
+
+		args = np.isfinite(y.flatten()) 
+		self.gpr.fit(X[args], y[args])
 		y_pred, y_std = self.gpr.predict(self.xout, return_std=True)
 		unnorm_post_mean = np.exp(-y_pred/2.)
 		norm_post_mean   = unnorm_post_mean/unnorm_post_mean.max()
@@ -228,7 +232,8 @@ class BOLFI:
 			print('\nFinal training of GPR for output.')
 			X = self.params.reshape(-1,1) if self.params.ndim==1 else self.params
 			y = self.dists.reshape(-1,1) if self.dists.ndim==1 else self.dists
-			self.gpr.fit(X[np.isfinite(y)], y[np.isfinite(y)])
+			args = np.isfinite(y.flatten()) 
+			self.gpr.fit(X[args], y[args])
 
 
 class BOLFI_postGPR:
