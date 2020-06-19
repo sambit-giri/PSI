@@ -210,8 +210,9 @@ class BOLFI:
 
 			if self.sigma_tol is not None:
 				self.exploitation_exploration = 1./self.sigma_tol if np.any(self.sigma_theta>self.sigma_tol) else 1.
+			args = np.isfinite(y.flatten())
 			#X_next = bopt.propose_location(bopt.expected_improvement, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10).T
-			X_next = bopt.propose_location(bopt.negativeGP_LCB, X[np.isfinite(y)], y[np.isfinite(y)], self.gpr, self.bounds, n_restarts=10, xi=self.exploitation_exploration).T
+			X_next = bopt.propose_location(bopt.negativeGP_LCB, X[args], y[args], self.gpr, self.bounds, n_restarts=10, xi=self.exploitation_exploration).T
 
 			#y_next = self._simulator(X_next.T)
 			#d_next = self.distance(self.y_obs, y_next)
