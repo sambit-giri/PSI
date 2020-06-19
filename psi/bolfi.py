@@ -148,7 +148,7 @@ class BOLFI:
 
 	def sim_n_dist(self, xi):
 		if self.inside_nSphere:
-			xr = np.sum(((x-self.bound_mins)/(self.bound_maxs-self.bound_mins)-0.5)**2)
+			xr = np.sum(((xi-self.bound_mins)/(self.bound_maxs-self.bound_mins)-0.5)**2)
 			if xr>0.25: return self.fill_value
 		yi = self.simulator(xi)
 		di = self.distance(self.y_obs, yi)
