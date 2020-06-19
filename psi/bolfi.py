@@ -46,7 +46,7 @@ class BOLFI_1param:
 		self.exploitation_exploration = exploitation_exploration
 		self.sigma_tol = sigma_tol
 
-	def fit_model(self, params, dists):
+	def fit_model(self, params, dists, cv=True):
 		X = params.reshape(-1,1) if params.ndim==1 else params
 		y = dists.reshape(-1,1) if dists.ndim==1 else dists
 
@@ -65,6 +65,7 @@ class BOLFI_1param:
 		self.cv_JS_dist['std'].append(cvdist.std())
 		self.cv_JS_dist['mean'].append(cvdist.mean())
 		y_pred, y_std = self.gpr.predict(self.xout, return_std=True)
+		self.sigma_theta = y_std
 		unnorm_post_mean = np.exp(-y_pred/2.)
 		self.post_mean_unnorm.append(unnorm_post_mean)
 		self.post_mean_normmax.append(unnorm_post_mean/unnorm_post_mean.max())
@@ -92,9 +93,9 @@ class BOLFI_1param:
 			y = self.dists.reshape(-1,1) if self.dists.ndim==1 else self.dists
 			
 			if self.sigma_tol is not None:
-				self.exploitation_exploration = 1./self.sigma_tol if np.any(sigma_theta>self.sigma_tol) else 1.
-			#X_next = bopt.propose_location(bopt.expected_improvement, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10).T
-			X_next = bopt.propose_location(bopt.negativeGP_LCB, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10, xi=self.exploitation_exploration).T
+				self.exploitation_exploration = 1./self.sigma_tol if np.any(self.sigma_theta>self.sigma_tol) else 1.
+			#X_next = bopt.propose_location(bopt.expected_improvement, X, y, self.gpr, self.bounds[0].reshape(1,-1), n_restarts=10).T
+			X_next = bopt.propose_location(bopt.negativeGP_LCB, X, y, self.gpr, self.bounds[0].reshape(1,-1), n_restarts=10, xi=self.exploitation_exploration).T
 
 			y_next = self.simulator(X_next)
 			d_next = self.distance(self.y_obs, y_next)
