@@ -61,7 +61,15 @@ psi.corner.plot_lfire(lfi2)
 
 
 ## Nuisance parameters
-lfi2 = psi.LFIRE_TrainingSetAuto(simulator2, y_obs, prior2, bounds2, n_init=10, n_step=1, n_max=100, n_grid_out=5, thetas=None, verbose=True, penalty='l1', n_jobs=4, clfy=None, lfire=None)
+
+# 2 param
+simulator2 = lambda x: line.simulator(x[0], x[1])
+#distance2  = psi.distances.euclidean
+
+prior2  = {'m': 'uniform', 'c': 'uniform'}
+bounds2 = {'m': [-2.5, 0.5], 'c': [0,10]}
+
+lfi2 = psi.LFIRE_TrainingSetAuto(simulator2, y_obs, prior2, bounds2, n_init=10, n_step=1, n_max=100, n_grid_out=5, thetas=None, verbose=False, penalty='l1', n_jobs=4, clfy=None, lfire=None)
 lfi2.run()
 
 

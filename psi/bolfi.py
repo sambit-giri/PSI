@@ -24,7 +24,7 @@ def _grid_bounds(bounds, n_grid=20):
 	return grid
 
 class BOLFI_1param:
-	def __init__(self, simulator, distance, observation, prior, bounds, N_init=5, gpr=None, max_iter=100, cv_JS_tol=0.01, successive_JS_tol=0.01):
+	def __init__(self, simulator, distance, observation, prior, bounds, N_init=5, gpr=None, max_iter=100, cv_JS_tol=0.01, successive_JS_tol=0.01, exploitation_exploration=None, sigma_tol=0.001):
 		self.N_init  = N_init
 		self.gpr = GaussianProcessRegressor() if gpr is None else gpr
 		self.simulator = simulator
@@ -42,6 +42,9 @@ class BOLFI_1param:
 		self.cv_JS_dist = {'mean':[], 'std':[]}
 		self.successive_JS_tol  = successive_JS_tol
 		self.successive_JS_dist = []
+
+		self.exploitation_exploration = exploitation_exploration
+		self.sigma_tol = sigma_tol
 
 	def fit_model(self, params, dists):
 		X = params.reshape(-1,1) if params.ndim==1 else params
@@ -87,7 +90,11 @@ class BOLFI_1param:
 			if condition1 and condition2: break
 			X = self.params.reshape(-1,1) if self.params.ndim==1 else self.params
 			y = self.dists.reshape(-1,1) if self.dists.ndim==1 else self.dists
-			X_next = bopt.propose_location(bopt.expected_improvement, X, y, self.gpr, self.bounds[0].reshape(1,-1))
+			
+			if self.sigma_tol is not None:
+				self.exploitation_exploration = 1./self.sigma_tol if np.any(sigma_theta>self.sigma_tol) else 1.
+			#X_next = bopt.propose_location(bopt.expected_improvement, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10).T
+			X_next = bopt.propose_location(bopt.GP_UCB_posterior_space, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10, xi=self.exploitation_exploration).T
 
 			y_next = self.simulator(X_next)
 			d_next = self.distance(self.y_obs, y_next)
@@ -102,7 +109,7 @@ class BOLFI_1param:
 			condition2 = self.successive_JS_dist[-1]<self.successive_JS_tol
 
 class BOLFI:
-	def __init__(self, simulator, distance, observation, prior, bounds, N_init=5, gpr=None, max_iter=100, cv_JS_tol=0.01, successive_JS_tol=0.01, n_grid_out=100):
+	def __init__(self, simulator, distance, observation, prior, bounds, N_init=5, gpr=None, max_iter=100, cv_JS_tol=0.01, successive_JS_tol=0.01, n_grid_out=100, exploitation_exploration=None, sigma_tol=0.001):
 		self.N_init  = N_init
 		self.gpr = GaussianProcessRegressor() if gpr is None else gpr
 		self.simulator = simulator
@@ -122,7 +129,10 @@ class BOLFI:
 		self.cv_JS_tol  = cv_JS_tol
 		self.cv_JS_dist = {'mean':[], 'std':[]}
 		self.successive_JS_tol  = successive_JS_tol
-		self.successive_JS_dist = []		
+		self.successive_JS_dist = []	
+
+		self.exploitation_exploration = exploitation_exploration
+		self.sigma_tol = sigma_tol	
 
 	def sample_prior(self, kk):
 		return self.param_bound[kk][0]+(self.param_bound[kk][1]-self.param_bound[kk][0])*np.random.uniform()
@@ -172,8 +182,11 @@ class BOLFI:
 			if condition1 and condition2: break
 			X = self.params.reshape(-1,1) if self.params.ndim==1 else self.params
 			y = self.dists.reshape(-1,1) if self.dists.ndim==1 else self.dists
-			X_next = bopt.propose_location(bopt.expected_improvement, X, y, self.gpr, self.bounds).T
 
+			if self.sigma_tol is not None:
+				self.exploitation_exploration = 1./self.sigma_tol if np.any(sigma_theta>self.sigma_tol) else 1.
+			#X_next = bopt.propose_location(bopt.expected_improvement, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10).T
+			X_next = bopt.propose_location(bopt.GP_UCB_posterior_space, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10, xi=self.exploitation_exploration).T
 			y_next = self.simulator(X_next.T)
 			d_next = self.distance(self.y_obs, y_next)
 
