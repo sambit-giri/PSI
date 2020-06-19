@@ -150,7 +150,7 @@ class BOLFI:
 		if self.inside_nSphere:
 			xr = np.sum(((x-self.bound_mins)/(self.bound_maxs-self.bound_mins)-0.5)**2)
 			if xr>=0.5: return self.fill_value
-		return simulator(x)
+		return self.simulator(x)
 
 	def fit_model(self, params, dists):
 		X = params.reshape(-1,1) if params.ndim==1 else params
