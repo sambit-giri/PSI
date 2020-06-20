@@ -40,14 +40,20 @@ distance  = psi.distances.euclidean
 
 prior  = {'m': 'uniform', 'c': 'uniform'}
 bounds = {'m': [-2.5, 0.5], 'c': [0,10]}
-gpr = GaussianProcessRegressor()
+#gpr = GaussianProcessRegressor()
 
 kernel = Matern(length_scale=1.0, length_scale_bounds=(1e-1, 10.0), nu=1.5)
 gpr = GaussianProcessRegressor(kernel=kernel)
 
-rn = psi.BOLFI(simulator, distance, y_obs, prior, bounds, N_init=10, gpr=gpr, max_iter=100, sigma_tol=0.01, successive_JS_tol=0.02, inside_nSphere=False)
+rn = psi.BOLFI(simulator, distance, y_obs, prior, bounds, N_init=50, gpr=gpr, max_iter=100, sigma_tol=0.01, successive_JS_tol=0.02, inside_nSphere=False)
 #rn = psi.BOLFI_postGPR(simulator, distance, y_obs, prior, bounds, N_init=100, gpr=gpr, max_iter=100, sigma_tol=0.01, successive_JS_tol=0.02)
 rn.run()
+
+fig = plt.figure()
+ax1 = fig.add_subplot(221)
+#ax2 = fig.add_subplot(222)
+ax3 = fig.add_subplot(223)
+ax4 = fig.add_subplot(224)
 
 psi.corner.plot_2Dmarginal(
     rn.xout,
@@ -55,10 +61,35 @@ psi.corner.plot_2Dmarginal(
     param_names=rn.param_names,
     idx=0,
     idy=1,
+    ax=ax3,
     smooth=False,
     true_values={'m': line.true_slope, 'c': line.true_intercept},
     CI=[95],
-)	
+)
+
+psi.corner.plot_1Dmarginal(
+    rn.xout,
+    rn.post_mean_normmax[-1].flatten(),
+    param_names=None,
+    idx=1,
+    ax=ax1,
+    bins=100,
+    verbose=False,
+    smooth=False,
+    true_values=None,
+)
+
+psi.corner.plot_1Dmarginal(
+    rn.xout,
+    rn.post_mean_normmax[-1].flatten(),
+    param_names=None,
+    idx=0,
+    ax=ax4,
+    bins=100,
+    verbose=False,
+    smooth=3,
+    true_values=None,
+)
 	
 ## JS over iterations
 plt.rcParams['figure.figsize'] = [12, 6]
