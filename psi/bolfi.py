@@ -114,7 +114,7 @@ class BOLFI_1param:
 			condition2 = self.successive_JS_dist[-1]<self.successive_JS_tol
 
 class BOLFI:
-	def __init__(self, simulator, distance, observation, prior, bounds, N_init=5, gpr=None, max_iter=100, cv_JS_tol=0.01, successive_JS_tol=0.01, n_grid_out=100, exploitation_exploration=None, sigma_tol=0.001, inside_nSphere=False, fill_value=np.nan):
+	def __init__(self, simulator, distance, observation, prior, bounds, N_init=5, gpr=None, max_iter=100, cv_JS_tol=0.01, successive_JS_tol=0.01, n_grid_out=100, exploitation_exploration=None, sigma_tol=0.001, inside_nSphere=False, fill_value=np.nan, params=None, dists=None):
 		self.N_init  = N_init
 		self.gpr = GaussianProcessRegressor() if gpr is None else gpr
 		self.simulator = simulator
@@ -142,6 +142,9 @@ class BOLFI:
 		self.sigma_tol = sigma_tol	
 		self.inside_nSphere = inside_nSphere
 		self.fill_value = fill_value
+
+		self.params = np.array([]) if params is None else params
+		self.dists  = np.array([]) if dists is None else dists
 
 	def sample_prior(self, kk):
 		return self.param_bound[kk][0]+(self.param_bound[kk][1]-self.param_bound[kk][0])*np.random.uniform()
