@@ -59,7 +59,7 @@ def propose_location(acquisition, X_sample, Y_sample, gpr, bounds, n_restarts=25
     
     def min_obj(X):
         # Minimization objective is the negative acquisition function
-        return -acquisition(X.reshape(-1, dim), X_sample, Y_sample, gpr)
+        return -acquisition(X.reshape(-1, dim), X_sample, Y_sample, gpr, xi=xi)
     
     # Find the best optimum by starting from n_restart different random points.
     for x0 in np.random.uniform(bounds[:, 0], bounds[:, 1], size=(n_restarts, dim)):
