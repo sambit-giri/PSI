@@ -143,6 +143,9 @@ class BOLFI:
 		self.inside_nSphere = inside_nSphere
 		self.fill_value = fill_value
 
+		if params is not None and dists is None:
+			dists = np.array([self.sim_n_dist(i) for i in params])
+
 		self.params = np.array([]) if params is None else params
 		self.dists  = np.array([]) if dists is None else dists
 
