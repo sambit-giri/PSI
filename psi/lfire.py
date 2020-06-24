@@ -8,6 +8,7 @@ from . import helper_functions as hf
 from . import bayesian_optimisation as bopt
 from sklearn.linear_model import LogisticRegressionCV
 from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import Matern
 
 def _grid_bounds(bounds, n_grid=20):
 	def add_dim_to_grid(bound, n_grid=100, init_grid=None):
@@ -146,7 +147,7 @@ class LFIRE_TrainingSetAuto:
 
 
 class LFIRE_BayesianOpt:
-	def __init__(self, simulator, observation, prior, bounds, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, thetas=None, n_init=10, max_iter=1000, tol=1e-5, verbose=True, penalty='l1', n_jobs=4, clfy=None, lfire=None, simulate_corner=True, exploitation_exploration=None, sigma_tol=0.001):
+	def __init__(self, simulator, observation, prior, bounds, sim_out_den=None, n_m=100, n_theta=100, n_grid_out=100, thetas=None, n_init=10, max_iter=1000, tol=1e-5, verbose=True, penalty='l1', n_jobs=4, clfy=None, lfire=None, simulate_corner=True, exploitation_exploration=None, sigma_tol=0.001, model_pdf=None):
 		self.n_init     = n_init
 		self.max_iter   = max_iter
 		self.tol        = tol
@@ -167,13 +168,19 @@ class LFIRE_BayesianOpt:
 		self.sigma_tol = sigma_tol
 
 		self.lfire = LFIRE if lfire is None else lfire
-		self.gpr = GaussianProcessRegressor()
+		if model_pdf is None:
+			kernel = Matern(length_scale=1.0, length_scale_bounds=(1e-3, 10.0), nu=1.5)
+			model_pdf = GaussianProcessRegressor(kernel=kernel)
+		self.gpr = model_pdf
 
-		self.lfi = self.lfire(self.simulator, self.y_obs, self.prior, self.bounds, sim_out_den=None, n_m=self.n_m, n_theta=self.n_theta, n_grid_out=self.n_grid_out, thetas=thetas, verbose=self.verbose, penalty=self.penalty, n_jobs=self.n_jobs, clfy=self.clfy)
+		self.lfi = self.lfire(self.simulator, self.y_obs, self.prior, self.bounds, sim_out_den=sim_out_den, n_m=self.n_m, n_theta=self.n_theta, n_grid_out=self.n_grid_out, thetas=thetas, verbose=self.verbose, penalty=self.penalty, n_jobs=self.n_jobs, clfy=self.clfy)
 		self.theta_out = self.lfi.thetas
 
 		params_corner = self.corner_to_theta() if simulate_corner else None
-		self.params   = np.array([[self.lfi.sample_prior(kk) for kk in self.lfi.param_names] for i in range(self.n_init if params_corner is None else self.n_init-params_corner.shape[0])]).squeeze()
+		if params is None:
+			self.params   = np.array([[self.lfi.sample_prior(kk) for kk in self.lfi.param_names] for i in range(self.n_init if params_corner is None else self.n_init-params_corner.shape[0])]).squeeze()
+		else:
+			self.params   = params[:self.n_init,:]
 		if params_corner is not None: self.params = np.concatenate((params_corner, self.params), axis=0)
 
 		self.JS_dist = []
