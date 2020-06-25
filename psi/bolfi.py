@@ -234,7 +234,7 @@ class BOLFI:
 			# #X_next = bopt.propose_location(bopt.expected_improvement, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10).T
 			# X_next = bopt.propose_location(bopt.negativeGP_LCB, X[args,:], y[args,:], self.gpr, self.bounds, n_restarts=10, xi=self.exploitation_exploration).T
 			X_next = self.get_next_point()
-			d_next = self.sim_n_dist(X_next.T)
+			d_next = np.array([self.sim_n_dist(X_n.T) for X_n in X_next])
 
 			self.params = np.append(self.params, X_next, axis=0) 
 			self.dists  = np.append(self.dists, d_next)
