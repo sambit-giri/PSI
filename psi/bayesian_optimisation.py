@@ -193,7 +193,7 @@ def draw_nsphere_surface(bound_min, bound_max, N=100):
     ri = 0.5*np.ones((N))
     for i in range(1,dims-1): ri = np.vstack((ri,np.linspace(0,np.pi,N)))
     ri = np.vstack((ri,np.linspace(0,2*np.pi,N)))
-    ri = ri.
+    ri = ri.T
     xi = np.array([hf.spherical_to_cartesian(thet) for thet in ri])
     yi = (xi+0.5)*(bound_max-bound_min)+bound_min
     return yi
