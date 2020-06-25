@@ -237,7 +237,7 @@ class BOLFI:
 
 			start_iter = len(self.params)
 			msg = self.fit_model(self.params, self.dists)
-			hf.loading_verbose('{0:6d}|{1:.6f}|{1:.6f}'.format(n_iter+1,msg,sucJSdist))
+			hf.loading_verbose('{0:6d}|{1:.6f}|{1:.6f}'.format(start_iter+1,msg,sucJSdist))
 			#condition1 = self.cv_JS_dist['mean'][-1]+self.cv_JS_dist['std'][-1]<self.cv_JS_tol
 			condition1 = self.cv_JS_dist['mean'][-1]<self.cv_JS_tol
 			condition2 = self.successive_JS_dist[-1]<self.successive_JS_tol
