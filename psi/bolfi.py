@@ -114,7 +114,7 @@ class BOLFI_1param:
 			condition2 = self.successive_JS_dist[-1]<self.successive_JS_tol
 
 class BOLFI:
-	def __init__(self, simulator, distance, observation, prior, bounds, N_init=5, gpr=None, max_iter=100, cv_JS_tol=0.01, successive_JS_tol=0.01, n_grid_out=100, exploitation_exploration=None, sigma_tol=0.001, inside_nSphere=False, fill_value=np.nan, params=None, dists=None):
+	def __init__(self, simulator, distance, observation, prior, bounds, N_init=5, gpr=None, max_iter=100, cv_JS_tol=0.01, successive_JS_tol=0.01, n_grid_out=100, exploitation_exploration=None, sigma_tol=0.001, inside_nSphere=False, fill_value=np.nan, params=None, dists=None, batch=1):
 		self.N_init  = N_init
 		self.gpr = GaussianProcessRegressor() if gpr is None else gpr
 		self.simulator = simulator
@@ -128,6 +128,8 @@ class BOLFI:
 		#self.sample_prior = {}
 		#for i,kk in enumerate(self.param_names):
 		#	self.sample_prior[kk] = lambda: bounds[kk][0]+(bounds[kk][1]-bounds[kk][0])*np.random.uniform()
+		self.batch = batch
+
 		self.xout = _grid_bounds(self.bounds, n_grid=n_grid_out)
 		self.max_iter = max_iter
 		self.params = np.array([])
@@ -199,7 +201,7 @@ class BOLFI:
 			self.exploitation_exploration = 1./self.sigma_tol if np.any(self.sigma_theta>self.sigma_tol) else 1.
 		args = np.isfinite(y.flatten())
 		#X_next = bopt.propose_location(bopt.expected_improvement, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10).T
-		X_next = bopt.propose_location(bopt.negativeGP_LCB, X[args,:], y[args,:], self.gpr, self.bounds, n_restarts=10, xi=self.exploitation_exploration).T
+		X_next = bopt.propose_location_nSphere(bopt.negativeGP_LCB, X[args,:], y[args,:], self.gpr, self.bounds, n_restarts=10, xi=self.exploitation_exploration, batch=self.batch).T
 		return X_next
 
 	def run(self, max_iter=None, trained_gpr=True):

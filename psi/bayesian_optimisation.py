@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.optimize import minimize
 from scipy.stats import norm
+from . import sampling_space as smp 
+from . import helper_functions as hf
 
 def expected_improvement(X, X_sample, Y_sample, gpr, xi=0.01):
     '''
@@ -71,6 +73,64 @@ def propose_location(acquisition, X_sample, Y_sample, gpr, bounds, n_restarts=25
     return min_x.reshape(-1, 1)
 
 
+def propose_location_nSphere(acquisition, X_sample, Y_sample, gpr, bounds, n_restarts=25, xi=1, inside_nsphere=True, batch=1):
+    '''
+    Proposes the next sampling point by optimizing the acquisition function.
+    It maximises the acquisition function.
+    
+    Args:
+        acquisition: Acquisition function.
+        X_sample: Sample locations (n x d).
+        Y_sample: Sample values (n x 1).
+        gpr: A GaussianProcessRegressor fitted to samples.
+        bounds: The lower and upper bounds of your X space.
+        n_restarts: Number of times to restart minimser from a different random start point.
+        xi : Tuning parameter, such as Exploitation-exploration trade-off parameter.
+    Returns:
+        Location of the acquisition function maximum.
+    '''
+    if n_restarts<5*batch:
+        print('(n_restarts) parameter is changed to 5x(batch)')
+        n_restarts = 5*batch
+
+    dim = X_sample.shape[1]
+    min_val = 2*Y_sample.max()#1
+    min_x = None
+
+    min_vals, min_xs = [], []
+
+    bound_min = bounds.min(axis=1)
+    bound_max = bounds.max(axis=1)
+    
+    def min_obj(X):
+        # Minimization objective is the negative acquisition function
+        if inside_nsphere:
+            check = check_inside_nsphere(X, bound_min, bound_max)
+            if not check: 
+                #print(X, 'check failed')
+                return np.inf
+        #print(X, 'check passed')
+        val = -acquisition(X.reshape(-1, dim), X_sample, Y_sample, gpr, xi=xi)
+        return val.reshape(1) if val.size==1 else val
+    
+    # Find the best optimum by starting from n_restart different random points.
+    if inside_nsphere: start_points = smp.MCS_nsphere(n_params=dim, samples=n_restarts, mins=bound_min, maxs=bound_max)
+    else: start_points = np.random.uniform(bounds[:, 0], bounds[:, 1], size=(n_restarts, dim))
+    for x0 in start_points:
+        res = minimize(min_obj, x0=x0, bounds=bounds, method='L-BFGS-B') 
+        if check_inside_nsphere(res.x, bound_min, bound_max):
+            min_vals.append(res.fun[0])
+            min_xs.append(res.x)       
+        # if res.fun < min_val:
+        #     min_val = res.fun[0]
+        #     min_x = res.x   
+    args = _argmin(np.array(min_vals), count=batch)        
+    min_val = np.array(min_vals)[args]
+    min_x   = np.array(min_xs)[args]
+    min_x   = min_x.T if batch>1 else min_x.reshape(-1, 1)
+    return min_x
+
+
 
 def GP_UCB_posterior_space(X, X_sample, Y_sample, gpr, xi=100):
     '''
@@ -123,4 +183,23 @@ def negativeGP_LCB(X, X_sample, Y_sample, gpr, xi=100):
     #lcb = xi*sigma
 
     return -lcb
+
+def check_inside_nsphere(X, bound_min, bound_max):
+    check = np.sum(((X-bound_min)/(bound_max-bound_min)-0.5)**2, axis=1) if X.ndim>1 else np.sum(((X-bound_min)/(bound_max-bound_min)-0.5)**2)
+    return check<0.25
+
+def draw_nsphere_surface(bound_min, bound_max, N=100):
+    dims = len(bound_min)
+    ri = 0.5*np.ones((N))
+    for i in range(1,dims-1): ri = np.vstack((ri,np.linspace(0,np.pi,N)))
+    ri = np.vstack((ri,np.linspace(0,2*np.pi,N)))
+    ri = ri.
+    xi = np.array([hf.spherical_to_cartesian(thet) for thet in ri])
+    yi = (xi+0.5)*(bound_max-bound_min)+bound_min
+    return yi
+
+def _argmin(x, count=1, axis=None):
+    if count==1: return np.argmin(x, axis=axis)
+    args = np.argsort(x, axis=axis)
+    return args[:count]
 
