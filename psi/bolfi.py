@@ -223,8 +223,8 @@ class BOLFI:
 		# Further sampling
 		start_iter = len(self.params)
 		condition1, condition2 = False, False
-		#for n_iter in range(start_iter,self.max_iter):
-		while n_iter<self.max_iter:
+		#for start_iter in range(start_iter,self.max_iter):
+		while start_iter<self.max_iter:
 			if condition1 and condition2: break
 			
 			X_next = self.get_next_point()
@@ -235,7 +235,7 @@ class BOLFI:
 			sucJSdist   = distances.jensenshannon(self.post_mean_normmax[-1], self.post_mean_normmax[-2])[0] if len(self.post_mean_normmax)>1 else 10
 			self.successive_JS_dist.append(sucJSdist)
 
-			n_iter = len(self.params)
+			start_iter = len(self.params)
 			msg = self.fit_model(self.params, self.dists)
 			hf.loading_verbose('{0:6d}|{1:.6f}|{1:.6f}'.format(n_iter+1,msg,sucJSdist))
 			#condition1 = self.cv_JS_dist['mean'][-1]+self.cv_JS_dist['std'][-1]<self.cv_JS_tol
