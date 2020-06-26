@@ -258,9 +258,8 @@ class BOLFI:
 			self.gpr.fit(X[args], y[args])
 
 		if self.save_chain:
-			chains = {'params': self.params, 'dists': dists}
-			if self.all_simulations is not None: chains['sims': self.all_simulations]
-			pickle.dump(chains, open(self.save_chain.split('.pkl')[0]+'.pkl', 'wb'))
+			filename = self.save_chain.split('.pkl')[0]+'.pkl'
+			hf.save_model(filename, self)
 
 class BOLFI_postGPR:
 	def __init__(self, simulator, distance, observation, prior, bounds, N_init=5, gpr=None, max_iter=100, cv_JS_tol=0.01, successive_JS_tol=0.01, n_grid_out=100, exploitation_exploration=None, sigma_tol=0.001, inside_nSphere=True, fill_value=1000):
