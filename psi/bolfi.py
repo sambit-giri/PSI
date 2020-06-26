@@ -3,6 +3,7 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import DotProduct, WhiteKernel
 from sklearn.model_selection import KFold
 from scipy.integrate import simps
+import pickle
 import warnings 
 warnings.filterwarnings("ignore")
 from . import distances
@@ -114,7 +115,11 @@ class BOLFI_1param:
 			condition2 = self.successive_JS_dist[-1]<self.successive_JS_tol
 
 class BOLFI:
-	def __init__(self, simulator, distance, observation, prior, bounds, N_init=5, gpr=None, max_iter=100, cv_JS_tol=0.01, successive_JS_tol=0.01, n_grid_out=100, exploitation_exploration=None, sigma_tol=0.001, inside_nSphere=False, fill_value=np.nan, params=None, dists=None, batch=1):
+	def __init__(self, simulator, distance, observation, prior, bounds, 
+		N_init=5, gpr=None, max_iter=100, cv_JS_tol=0.01, successive_JS_tol=0.01, 
+		n_grid_out=100, exploitation_exploration=None, sigma_tol=0.001, inside_nSphere=False, 
+		fill_value=np.nan, params=None, dists=None, batch=1, save_chain=False, keep_simulation=False):
+
 		self.N_init  = N_init
 		self.gpr = GaussianProcessRegressor() if gpr is None else gpr
 		self.simulator = simulator
@@ -129,6 +134,8 @@ class BOLFI:
 		#for i,kk in enumerate(self.param_names):
 		#	self.sample_prior[kk] = lambda: bounds[kk][0]+(bounds[kk][1]-bounds[kk][0])*np.random.uniform()
 		self.batch = batch
+		self.save_chain = save_chain if isinstance(save_chain, (str)) or False else 'sample_chain'
+		self.all_simulations = [] if keep_simulation else None
 
 		self.xout = _grid_bounds(self.bounds, n_grid=n_grid_out)
 		self.max_iter = max_iter
@@ -160,6 +167,7 @@ class BOLFI:
 			if xr>0.25: return self.fill_value
 		yi = self.simulator(xi)
 		di = self.distance(self.y_obs, yi)
+		if self.all_simulations is not None: self.all_simulations.append(yi)
 		return di
 
 	def fit_model(self, params, dists):
@@ -226,7 +234,7 @@ class BOLFI:
 		#for start_iter in range(start_iter,self.max_iter):
 		while start_iter<self.max_iter:
 			if condition1 and condition2: break
-			
+
 			X_next = self.get_next_point()
 			d_next = np.array([self.sim_n_dist(X_n.T) for X_n in X_next])
 
@@ -249,6 +257,10 @@ class BOLFI:
 			args = np.isfinite(y.flatten()) 
 			self.gpr.fit(X[args], y[args])
 
+		if self.save_chain:
+			chains = {'params': self.params, 'dists': dists}
+			if self.all_simulations is not None: chains['sims': self.all_simulations]
+			pickle.dump(chains, open(self.save_chain.split('.pkl')[0]+'.pkl', 'wb'))
 
 class BOLFI_postGPR:
 	def __init__(self, simulator, distance, observation, prior, bounds, N_init=5, gpr=None, max_iter=100, cv_JS_tol=0.01, successive_JS_tol=0.01, n_grid_out=100, exploitation_exploration=None, sigma_tol=0.001, inside_nSphere=True, fill_value=1000):
