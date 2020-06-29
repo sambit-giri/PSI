@@ -324,7 +324,7 @@ class LFIRE_BayesianOpt_ShrinkSpace:
 
 		# Next points
 		print('Further sampling the parameter space with Bayesian Optimisation.')
-		start_iter = self.params.size
+		start_iter = len(self.params)
 		condition1 = False
 		for n_iter in range(start_iter,self.max_iter[0]):
 			if condition1: break

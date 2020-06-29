@@ -71,24 +71,24 @@ psi.corner.plot_1Dmarginal(
     rn.xout,
     rn.post_mean_normmax[-1].flatten(),
     param_names=None,
-    idx=1,
-    ax=ax1,
+    idx=0,
+    ax=ax4,
     bins=100,
     verbose=False,
-    smooth=False,
-    true_values=None,
+    smooth=3,
+    true_values={'m': line.true_slope, 'c': line.true_intercept},
 )
 
 psi.corner.plot_1Dmarginal(
     rn.xout,
     rn.post_mean_normmax[-1].flatten(),
     param_names=None,
-    idx=0,
-    ax=ax4,
+    idx=1,
+    ax=ax1,
     bins=100,
     verbose=False,
     smooth=3,
-    true_values=None,
+    true_values={'m': line.true_slope, 'c': line.true_intercept},
 )
 	
 ## JS over iterations
