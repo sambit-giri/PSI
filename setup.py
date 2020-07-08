@@ -15,6 +15,6 @@ setup(name='psi',
       package_dir = {'psi' : 'psi'},
       packages=['psi'],
       package_data={'share':['*'],},
-      install_requires=['numpy','scipy','scikit-learn','scikit-image'],
+      install_requires=['numpy','scipy','scikit-learn','scikit-image', 'pyDOE', 'astropy', 'pyfits', 'pyfftw'],
       #include_package_data=True,
 )

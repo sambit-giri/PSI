@@ -6,3 +6,4 @@ pyfftw
 scikit-learn
 scikit-image
 pyfits
+pyDOE
