@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from getdist import plots, MCSamples
 import getdist
+import IPython
 
 def plot_dist_corner(samples, labels=None, names=None, filled=True, sample_labels=None):
 	if isinstance(samples, (list,tuple)):
