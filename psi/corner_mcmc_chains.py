@@ -12,5 +12,5 @@ def plot_dist_corner(samples, labels=None, names=None, filled=True, sample_label
 		samps = MCSamples(samples=samples, names=names, labels=labels)
 		g = plots.get_subplot_plotter()
 		g.triangle_plot(samps, filled=filled)
-
+	plt.show()
 	return None
