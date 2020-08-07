@@ -1,25 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-
-from getdist import plots, MCSamples
-import getdist
-
 from scipy import interpolate
 from scipy.ndimage import gaussian_filter
-
-def plot_dist_corner_getdist(samples, labels=None, names=None, filled=True, sample_labels=None):
-	if isinstance(samples, (list,tuple)):
-		if sample_labels is None: sample_labels = ['samples {0:d}'.format(i) for i in range(len(samples))]
-		samps = [MCSamples(samples=samples0, names=names, labels=labels, label=str(slabels0)) for samples0, slabels0 in zip(samples,sample_labels)]
-		g = plots.get_subplot_plotter()
-		g.triangle_plot(samps, filled=filled)
-	else:
-		samps = MCSamples(samples=samples, names=names, labels=labels)
-		g = plots.get_subplot_plotter()
-		g.triangle_plot(samps, filled=filled)
-	plt.show()
-	return None
-
 
 def walk_parameter(param, param_name=None, step_name=None, step_ticks=None, linestyle=None, linewidth=2, color=None):
 	if param.ndim==1:
@@ -36,7 +18,7 @@ def walk_parameter(param, param_name=None, step_name=None, step_ticks=None, line
 			pa_name = param_name[s] if len(param_name)==param.shape[1] else param_name
 			walk_parameter(pa, param_name=pa_name, step_name=step_name, step_ticks=step_ticks, linestyle=linestyle, linewidth=linewidth, color=None)
 
-def plot_corner_dist(samples, labels=None, flavor='hist', bins_1d=60, bins_2d=60, cmap=plt.cm.viridis, shading='gouraud', linestyle='-', linewidth=2, normed=True, parallise=False, CI=[68,95]):
+def corner_density(samples, labels=None, flavor='hist', bins_1d=60, bins_2d=60, cmap=plt.cm.viridis, shading='gouraud', linestyle='-', linewidth=2, normed=True, parallise=False, CI=[68,95]):
 	n_samples = samples.shape[1]
 	if labels is None: labels = ['$\\theta_%d$'%i for i in range(n_samples)]
 	else: assert len(labels)==n_samples
@@ -262,4 +244,7 @@ doi = {10.1080/00031305.1996.10474359}
 
 
 """
+	
 
+
+	
