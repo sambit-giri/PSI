@@ -36,7 +36,7 @@ def walk_parameter(param, param_name=None, step_name=None, step_ticks=None, line
 			pa_name = param_name[s] if len(param_name)==param.shape[1] else param_name
 			walk_parameter(pa, param_name=pa_name, step_name=step_name, step_ticks=step_ticks, linestyle=linestyle, linewidth=linewidth, color=None)
 
-def plot_corner_dist(samples, labels=None, flavor='hist', bins_1d=60, bins_2d=60, cmap=plt.cm.viridis, shading='gouraud', linestyle='-', linewidth=2, normed=True, parallise=False, CI=[68,95]):
+def plot_corner_dist(samples, labels=None, flavor='hist', bins_1d=60, bins_2d=60, cmap=plt.cm.viridis, shading='gouraud', linestyle='-', linewidth=2, normed=True, parallise=False, CI=[68,95], CI_plotparam=None, smooth_dist=2.5):
 	n_samples = samples.shape[1]
 	if labels is None: labels = ['$\\theta_%d$'%i for i in range(n_samples)]
 	else: assert len(labels)==n_samples
@@ -50,43 +50,50 @@ def plot_corner_dist(samples, labels=None, flavor='hist', bins_1d=60, bins_2d=60
 			print(i+1,j+1)
 			if j>i: axes[i,j].set_visible(False)
 			else:
-			        #print(bins_1d[i])
-                                if i==j: density_1D(samples[:,i], axes=axes[i,j], bins=bins_1d[i], linestyle=linestyle, linewidth=linewidth, normed=normed)
-				else: im = density_2D(samples[:,j], samples[:,i], CI=CI, axes=axes[i,j], flavor=flavor, nbins=bins_2d[i], cmap=cmap, shading=shading)
+				if i==j: 
+					density_1D(samples[:,i], axes=axes[i,j], bins=bins_1d[i], linestyle=linestyle, linewidth=linewidth, normed=normed, smooth_dist=smooth_dist)
+				else: 
+					im = density_2D(samples[:,j], samples[:,i], CI=CI, axes=axes[i,j], flavor=flavor, nbins=bins_2d[i], cmap=cmap, shading=shading, CI_plotparam=CI_plotparam, smooth_dist=smooth_dist)
 			if j==0: 
-				if i!=0: axes[i,j].set_ylabel(labels[i])
-				else: axes[i,j].set_yticks([])
-			else: axes[i,j].set_yticks([])
-			if i==n_samples-1: axes[i,j].set_xlabel(labels[j])
-			else: axes[i,j].set_xticks([])
+				if i!=0: 
+					axes[i,j].set_ylabel(labels[i])
+				else: 
+					axes[i,j].set_yticks([])
+			else: 
+				axes[i,j].set_yticks([])
+			if i==n_samples-1: 
+				axes[i,j].set_xlabel(labels[j])
+			else: 
+				axes[i,j].set_xticks([])
 	#fig.set_size_inches(18.5, 10.5)
 	fig.subplots_adjust(right=0.9)
 	cbar_ax = fig.add_axes([0.92, 0.15, 0.03, 0.7])
 	fig.colorbar(im, cax=cbar_ax)
 	### Estimate the CI
-	print_CI_samples(samples, bins_1d=bins_1d, CI=CI)
+	print_CI_samples(samples, bins_1d=bins_1d, CI=CI, labels=labels, smooth_dist=smooth_dist)
 
-def print_CI_samples(samples, bins_1d=60, CI=[68,95]):
+def print_CI_samples(samples, bins_1d=60, CI=[68,95], labels=None, smooth_dist=2.5):
+	if labels is None: labels = ['$\\theta_%d$'%i for i in range(n_samples)]
 	n_samples = samples.shape[1]
 	if np.array(bins_1d).size==1: bins_1d = [bins_1d for i in range(n_samples)]
 	print('Here are the credible intervals for each parameter')
 	for ii in range(n_samples):
-		print('Parameter '+str(ii+1))
+		print('Parameter ', labels[ii])
 		print('------------------')
 		for cc in CI:
-			bla = get_CI_HDR_1D(samples[:,ii], percent=cc, bins=bins_1d[ii])
+			bla = get_CI_HDR_1D(samples[:,ii], percent=cc, bins=bins_1d[ii], smooth_dist=smooth_dist)
 			print('%d percent:'%cc)
 			for bb in zip(bla[0],bla[1]):
 				print('['+str(bb[0])+', '+str(bb[1])+']')
 
 	
-def density_1D(x, axes=None, bins=60, linestyle='-', linewidth=2, color=None, show_mean=False, show_std=False, show_title=False, normed=True):
+def density_1D(x, axes=None, bins=60, linestyle='-', linewidth=2, color=None, show_mean=False, show_std=False, show_title=False, normed=True, smooth_dist=2.5):
 	ht = np.histogram(x, bins=bins)
 	if axes is None: 
 		axes = plt
 		axes_plt = True
 	else: axes_plt = False
-	xax, yax = ht[1][1:]/2+ht[1][:-1]/2., gaussian_filter(1.*ht[0]/ht[0].max(), sigma=3.)
+	xax, yax = ht[1][1:]/2+ht[1][:-1]/2., gaussian_filter(1.*ht[0]/ht[0].max(), sigma=smooth_dist)
 	if normed: 
 		axes.plot(xax, yax, linestyle=linestyle, linewidth=linewidth, c=color)
 		if axes_plt: axes.ylim(0,1)
@@ -102,7 +109,8 @@ def density_1D(x, axes=None, bins=60, linestyle='-', linewidth=2, color=None, sh
 	if show_title: axes.set_title('%.2f$_\mathrm{-%.2f}^\mathrm{+%.2f}$'%(x.mean(),x.std(),x.std()))
 	print(x.mean(),x.std())
 
-def density_2D(x, y, CI=[68,95], axes=plt, flavor='hex', nbins='scott', cmap=plt.cm.BuGn_r, shading='gouraud'):
+def density_2D(x, y, CI=[68,95], axes=plt, flavor='hex', nbins='scott', cmap=plt.cm.BuGn_r, shading='gouraud', CI_plotparam=None, smooth_dist=2.5):
+	if CI_plotparam is None: CI_plotparam={'cmap': 'Reds', 'colors': None, 'alpha': 1}
 	if flavor.lower()=='scatter':
 		# Everything sarts with a Scatterplot
 		#axes.set_title('Scatterplot')
@@ -123,13 +131,15 @@ def density_2D(x, y, CI=[68,95], axes=plt, flavor='hex', nbins='scott', cmap=plt
 		#xx, yy = xx[1::2], yy[1::2]		
 		xi, yi = np.meshgrid(xx, yy)
 		zi = ht[0].T#f(xx.flatten(),yy.flatten())
-		zi = gaussian_filter(1.*zi, sigma=2.5); zi = (zi-zi.min())/(zi.max()-zi.min())
+		zi = gaussian_filter(1.*zi, sigma=smooth_dist); zi = (zi-zi.min())/(zi.max()-zi.min())
 		im = axes.pcolormesh(xi, yi, zi, cmap=cmap)
 		#im = axes.pcolormesh(xi, yi, 1.*zi.reshape(xi.shape)/zi.max(), cmap=cmap, shading=shading)
 		#axes.contour(xi, yi, zi, cmap='viridis', levels=[zi.max()-2*zi.std(),zi.max()-zi.std()], linestyles='--')
-		axes.contour(xi, yi, zi, cmap='Reds', levels=get_CI_HDR_2D(x, y, percent=CI[0], nbins=nbins), linestyles='-')
-                axes.contour(xi, yi, zi, cmap='Reds', levels=get_CI_HDR_2D(x, y, percent=CI[1], nbins=nbins), linestyles='--')
-		if len(CI)>2: axes.contour(xi, yi, zi, cmap='Reds', levels=get_CI_HDR_2D(x, y, percent=CI[2], nbins=nbins), linestyles=':')
+		lstyles = ['-', '--', ':', '-.'] 
+		levels_CI = np.array([get_CI_HDR_2D(x, y, percent=CI[idx]) for idx in range(len(CI))])
+		lstyle_CI = np.array([lstyles[idx] for idx in range(len(CI))])
+		levelsarg = np.argsort(levels_CI)
+		axes.contour(xi, yi, zi, levels=levels_CI[levelsarg], linestyles=lstyle_CI[levelsarg], cmap=CI_plotparam['cmap'], colors=CI_plotparam['colors'], alpha=CI_plotparam['alpha']) 
 	elif flavor.lower() in ['kde', 'shading', 'contour']:
 		from scipy.stats import kde
 		#from sklearn.neighbors.kde import KernelDensity
@@ -183,7 +193,7 @@ def plot_2d_power(ps, xticks, yticks, axes):
 	#plt.show()
 	return im
 
-def get_CI_HDR_2D(x, y, percent=95., nbins=60):
+def get_CI_HDR_2D(x, y, percent=95., nbins=60, smooth_dist=2.5):
 	"""
 	Hyndman (1996)
 	"""
@@ -192,7 +202,7 @@ def get_CI_HDR_2D(x, y, percent=95., nbins=60):
 	#f = interpolate.interp2d(xx, yy, ht[0].T, kind='cubic')		
 	xi, yi = np.meshgrid(xx, yy)
 	zi = ht[0].T
-	zi = gaussian_filter(1.*zi, sigma=2.5); zi = (zi-zi.min())/(zi.max()-zi.min())
+	zi = gaussian_filter(1.*zi, sigma=smooth_dist); zi = (zi-zi.min())/(zi.max()-zi.min())
 	p_sorted = np.sort(zi.flatten())
 	i, pp    = 0, 1.
 	while(pp>percent/100.):
@@ -203,12 +213,12 @@ def get_CI_HDR_2D(x, y, percent=95., nbins=60):
 	return pci
 
 
-def get_CI_HDR_1D(x, percent=95., bins=60):
+def get_CI_HDR_1D(x, percent=95., bins=60, smooth_dist=2.5):
 	"""
 	Hyndman (1996)
 	"""
 	ht = np.histogram(x, bins=bins)
-	xax, yax = ht[1][1:]/2+ht[1][:-1]/2., gaussian_filter(1.*ht[0]/ht[0].max(), sigma=3.)
+	xax, yax = ht[1][1:]/2+ht[1][:-1]/2., gaussian_filter(1.*ht[0]/ht[0].max(), sigma=smooth_dist)
 	p_sorted = np.sort(yax)
 	i, pp    = 0, 1.
 	while(pp>percent/100.):
