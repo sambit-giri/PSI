@@ -13,7 +13,7 @@ def credible_limit(zi, level, method='naive'):
 			if sm>(1-level/100): break
 	return zb
 
-def plot_lfire(lfi, smooth=5, true_values=None, CI=[95], cmap='Blues', CI_param=None):
+def plot_lfire(lfi, smooth=5, true_values=None, CI=[95], cmap='Blues', CI_param=None, figsize=(10,8)):
 	if np.ndim(lfi.thetas)==1:
 		fig, axes = plt.subplots(nrows=1, ncols=1) 
 		xx, cube  = lfi.thetas, lfi.posterior
@@ -24,7 +24,7 @@ def plot_lfire(lfi, smooth=5, true_values=None, CI=[95], cmap='Blues', CI_param=
 		return None
 	else:
 		N = lfi.thetas.shape[1]
-		fig, axes = plt.subplots(nrows=N, ncols=N)
+		fig, axes = plt.subplots(nrows=N, ncols=N, figsize=figsize)
 		for i in range(N):
 			for j in range(N):
 				if j>i: axes[i,j].axis('off')
