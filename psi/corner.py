@@ -133,7 +133,7 @@ def plot_2Dmarginal_lfire(lfi, idx, idy, ax=None, bins=100, verbose=False, smoot
 		CI_param = {}
 		CI_param['linestyle'] = ['-', '--', '-.', ':', '-.']
 		CI_param['color'] = colr_options
-		CI_param['linewidths'] = 3
+		CI_param['linewidths'] = 2
 	if len(CI_param['linestyle'])<len(CI):
 		while len(CI_param['linestyle'])<len(CI):
 			CI_param['linestyle'].append(CI_param['linestyle'])
@@ -167,7 +167,7 @@ def plot_2Dmarginal_lfire(lfi, idx, idy, ax=None, bins=100, verbose=False, smoot
 		for ci,cc in enumerate(CI):
 			ll = credible_limit(zi, cc, method='naive')
 			#print(ll)
-			ax.contour(xi, yi, zi, levels=[ll], linewidths=0.5, linewidths=CI_param['linewidths'], colors=CI_param['color'][ci], linestyles=CI_param['linestyle'][ci])
+			ax.contour(xi, yi, zi, levels=[ll], linewidths=CI_param['linewidths'], colors=CI_param['color'][ci], linestyles=CI_param['linestyle'][ci])
 	if ax is None: fig.colorbar(im, ax=ax)
 	#ax.imshow(xx, cube)
 	ax.set_xlabel(lfi.param_names[idy])
