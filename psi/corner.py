@@ -13,7 +13,7 @@ def credible_limit(zi, level, method='naive'):
 			if sm>(1-level/100): break
 	return zb
 
-def plot_lfire(lfi, smooth=5, true_values=None, CI=[95]):
+def plot_lfire(lfi, smooth=5, true_values=None, CI=[95], cmap='Blues', CI_param=None):
 	if np.ndim(lfi.thetas)==1:
 		fig, axes = plt.subplots(nrows=1, ncols=1) 
 		xx, cube  = lfi.thetas, lfi.posterior
@@ -36,7 +36,7 @@ def plot_lfire(lfi, smooth=5, true_values=None, CI=[95]):
 					if j>0:
 						axes[i,j].set_yticks([])
 				else: 
-					im = plot_2Dmarginal_lfire(lfi, i, j, ax=axes[i,j], smooth=smooth, true_values=true_values, CI=CI)
+					im = plot_2Dmarginal_lfire(lfi, i, j, ax=axes[i,j], smooth=smooth, true_values=true_values, CI=CI, cmap=cmap, CI_param=CI_param)
 					if i+1<N: 
 						axes[i,j].set_xlabel('')
 						axes[i,j].set_xticks([])
@@ -124,7 +124,22 @@ def plot_1Dmarginal_lfire(lfi, idx, ax=None, bins=100, verbose=False, smooth=Fal
 	ax.set_xlabel(lfi.param_names[idx])
 	
 
-def plot_2Dmarginal_lfire(lfi, idx, idy, ax=None, bins=100, verbose=False, smooth=False, true_values=None, CI=[95]):
+def plot_2Dmarginal_lfire(lfi, idx, idy, ax=None, bins=100, verbose=False, smooth=False, true_values=None, CI=[95], cmap='Blues', CI_param=None):
+	# cmap_options = ['Blues', 'Oranges', 'Greys', 'Purples', 'Greens', 'Reds']
+	colr_options = ['blue', 'orange', 'grey', 'purple', 'green', 'red']
+	colr_options.reverse()
+
+	if CI_param is None: 
+		CI_param = {}
+		CI_param['linestyle'] = ['-', '--', '-.', ':', '-.']
+		CI_param['color'] = colr_options
+	if len(CI_param['linestyle'])<len(CI):
+		while len(CI_param['linestyle'])<len(CI):
+			CI_param['linestyle'].append(CI_param['linestyle'])
+	if len(CI_param['color'])<len(CI):
+		while len(CI_param['color'])<len(CI):
+			CI_param['color'].append(CI_param['color'])
+
 	N = lfi.thetas.shape[1]
 	thetas = lfi.thetas
 	inds = np.arange(N); inds = np.delete(inds, max([idx,idy])); inds = np.delete(inds, min([idx,idy]))
@@ -144,14 +159,14 @@ def plot_2Dmarginal_lfire(lfi, idx, idy, ax=None, bins=100, verbose=False, smoot
 	if smooth: cube = gaussian(cube, smooth) 
 	if ax is None: fig, ax = plt.subplots(nrows=1, ncols=1)
 	zi = (cube-cube.min())/(cube.max()-cube.min())
-	im = ax.pcolormesh(xi, yi, zi, cmap='Blues')
+	im = ax.pcolormesh(xi, yi, zi, cmap=cmap)
 	if true_values is not None: 
 		ax.scatter(true_values[lfi.param_names[idy]], true_values[lfi.param_names[idx]], marker='*', c='r')
 	if CI is not None:
-		for cc in CI:
+		for ci,cc in enumerate(CI):
 			ll = credible_limit(zi, cc, method='naive')
 			#print(ll)
-			ax.contour(xi, yi, zi, levels=[ll], linewidths=0.5, colors='k')
+			ax.contour(xi, yi, zi, levels=[ll], linewidths=0.5, colors=CI_param['color'][ci], linestyles=CI_param['linestyle'][ci])
 	if ax is None: fig.colorbar(im, ax=ax)
 	#ax.imshow(xx, cube)
 	ax.set_xlabel(lfi.param_names[idy])
