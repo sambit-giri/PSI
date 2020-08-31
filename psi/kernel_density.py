@@ -4,7 +4,7 @@ Kernel Density Estimation
 Written around the KDE code in scikit-learn package.
 
 """
-
+import numpy as np
 from sklearn.neighbors import KernelDensity
 from sklearn.model_selection import cross_val_score
 
