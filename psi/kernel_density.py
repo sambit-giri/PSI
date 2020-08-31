@@ -28,7 +28,7 @@ def bandwidth_kdeCV(X, kde=None, bw=10**np.linspace(-2,1), cv=1, verbose=True, k
 	return bw[Jh.argmin()]
 
 
-def cross_val_loss_kdeCV_loo(X, kde, fx=None):
+def cross_val_loss_kdeCV_loo(X, kde, fx=None, verbose=True):
 	"""
 	J(h) = \int \hat{f}^2_n(x)dx - 2\int \hat{f}(x)f(x)dx
 	\hat{J}(h) = \int \hat{f}^2_n(x)dx - \frac{2}{n}\sum \hat{f}_{-i}(x_i)
@@ -40,7 +40,8 @@ def cross_val_loss_kdeCV_loo(X, kde, fx=None):
 		fx = np.exp(kde.score_samples(X))
 
 	loo = LeaveOneOut()
-	loo.get_n_splits(X)
+
+	if verbose: print('Leave One Out CV| splits: {0:d}'.format(X.shape[0]))
 
 	fx_loo_sum = np.array([])
 
@@ -54,7 +55,7 @@ def cross_val_loss_kdeCV_loo(X, kde, fx=None):
 	return np.sum(fx**2)-np.sum(fx_loo_sum)*2/fx_loo_sum.size
 
 
-def cross_val_loss_kdeCV_kFold(X, kde, fx=None, n_splits=5):
+def cross_val_loss_kdeCV_kFold(X, kde, fx=None, n_splits=5, verbose=True):
 	"""
 	J(h) = \int \hat{f}^2_n(x)dx - 2\int \hat{f}(x)f(x)dx
 	\hat{J}(h) = \int \hat{f}^2_n(x)dx - \frac{2}{n}\sum \hat{f}_{-i}(x_i)
@@ -66,7 +67,7 @@ def cross_val_loss_kdeCV_kFold(X, kde, fx=None, n_splits=5):
 		fx = np.exp(kde.score_samples(X))
 
 	kf = KFold(n_splits=n_splits)
-	# print('{0:d}-fold CV| splits: {1:d}'.format(n_splits,kf.get_n_splits(X)))
+	if verbose: print('{0:d}-fold CV| splits: {1:d}'.format(n_splits,kf.get_n_splits(X)))
 
 	fx_kfold_sum = np.array([])
 	for train_index, test_index in kf.split(X):
