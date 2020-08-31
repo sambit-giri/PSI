@@ -8,7 +8,7 @@ import numpy as np
 from sklearn.neighbors import KernelDensity
 from sklearn.model_selection import cross_val_score
 
-def bandwidth_kdeCV(X, kde=None, bw=10**np.linspace(-2,1), cv=1, kernel='gaussian', metric='euclidean', atol=0, leaf_size=40):
+def bandwidth_kdeCV(X, kde=None, bw=10**np.linspace(-2,1), cv=1, verbose=True, kernel='gaussian', metric='euclidean', atol=0, leaf_size=40):
 	"""
 	Estimate the bandwidth using cross validation.
 	"""
@@ -23,6 +23,7 @@ def bandwidth_kdeCV(X, kde=None, bw=10**np.linspace(-2,1), cv=1, kernel='gaussia
 		kde.bandwidth = h
 		jh_ = cross_val_loss_kdeCV_loo(X, kde, fx=pdf) if cv==1 else cross_val_loss_kdeCV_kFold(X, kde, fx=pdf, n_splits=cv)
 		Jh  = np.append(Jh, jh_)
+		if verbose: print('Completed: {0:.2f} %'.format(100*(i+1)/bw.size))
 
 	return bw[Jh.argmin()]
 
