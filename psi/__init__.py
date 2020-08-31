@@ -20,6 +20,7 @@ from .lfire import *
 from .rejectionABC import *
 from . import corner
 from . import corner_mcmc_chains
+from . import kernel_density
 
 #Suppress warnings from zero-divisions and nans
 import numpy
