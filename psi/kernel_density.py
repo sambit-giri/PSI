@@ -8,19 +8,35 @@ import numpy as np
 from sklearn.neighbors import KernelDensity
 from sklearn.model_selection import cross_val_score
 
+def bandwidth_kde_silverman(X):
+	"""
+	h_ii = (4/(d+2))**(1/(d+4)) n**(-1/(d+4)) sigma_i 
+	"""
+	n, d = X.shape
+	h_ii = (4/(d+2))**(1/(d+4))*n**(-1/(d+4))*X.std(axis=0)
+	return h_ii
+
+def bandwidth_kde_scott(X):
+	"""
+	h_ii = n**(-1/(d+4)) sigma_i 
+	"""
+	n, d = X.shape
+	h_ii = n**(-1/(d+4))*X.std(axis=0)
+	return h_ii
+
+
 def bandwidth_kdeCV(X, kde=None, bw=10**np.linspace(-2,1), cv=1, verbose=True, kernel='gaussian', metric='euclidean', atol=0, leaf_size=40):
 	"""
 	Estimate the bandwidth using cross validation.
 	"""
 	if kde is None: kde = KernelDensity(kernel=kernel, metric=metric, atol=atol, leaf_size=leaf_size)
 
-	kde.fit(X)
-	log_pdf = kde.score_samples(X)
-	pdf     = np.exp(log_pdf)
-
 	Jh = np.array([])
 	for i,h in enumerate(bw):
 		kde.bandwidth = h
+		kde.fit(X)
+		log_pdf = kde.score_samples(X)
+		pdf     = np.exp(log_pdf)
 		jh_ = cross_val_loss_kdeCV_loo(X, kde, fx=pdf) if cv==1 else cross_val_loss_kdeCV_kFold(X, kde, fx=pdf, n_splits=cv)
 		Jh  = np.append(Jh, jh_)
 		if verbose: print('Completed: {0:.2f} %'.format(100*(i+1)/bw.size))
@@ -78,11 +94,6 @@ def cross_val_loss_kdeCV_kFold(X, kde, fx=None, n_splits=5, verbose=True):
 		fx_kfold_sum = np.append(fx_kfold_sum, fx_kfold)
 
 	return np.sum(fx**2)-np.sum(fx_kfold_sum)*2/fx_kfold_sum.size
-
-
-
-
-
 
 
 
