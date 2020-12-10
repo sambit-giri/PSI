@@ -1,6 +1,8 @@
 import numpy as np 
 import matplotlib.pyplot as plt 
-from psi import ABC_gpL
+
+# import corner
+# from psi import ABC_gpL
 
 def MA2(t1, t2, n_obs=100, batch_size=1, random_state=None):
     # Make inputs 2d arrays for numpy broadcasting with w
@@ -53,7 +55,7 @@ def simulator_1p(theta):
 def distance_1p(S1, S2):
 	if S1.ndim==1: S1 = S1[:,None]
 	if S2.ndim==1: S2 = S2[:,None]
-	return ((S1-S2)**2).sum(axis=1)
+	return np.sqrt(((S1-S2)**2).sum(axis=1))
 
 
 theta_true_1p  = np.array([t1_true])
@@ -71,9 +73,7 @@ abc_1p.learn_distance()
 flat_samples_1p = abc_1p.run_mcmc(5000)  
 
 
-import corner
-
-labels_1p = ['t1', 't2']
+labels_1p = ['t1']
 fig_1p = corner.corner(
     flat_samples_1p, labels=labels_1p, truths=theta_true_1p
 );
@@ -112,9 +112,6 @@ abc = ABC_gpL(simulator, distance, y_obs,
 abc.learn_distance(1000)
 flat_samples = abc.run_mcmc(50000)  
 
-
-
-import corner
 
 labels = ['t1', 't2']
 fig = corner.corner(

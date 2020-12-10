@@ -14,10 +14,10 @@ import sys
 
 from . import sample_models
 from . import distances
-from .bolfi import *
+from . import bolfi
 from . import bayesian_optimisation
-from .lfire import *
-from .rejectionABC import *
+from . import lfire
+from . import rejectionABC
 from . import corner
 from . import corner_mcmc_chains
 from . import kernel_density
