@@ -30,17 +30,17 @@ class ABC_gpL:
 			self.mcmc_sampler_info['pool'] = None
 			self.mcmc_sampler_info['backend'] = None
 
-		self.theta_train = np.array([])
-		self.dist_train  = np.array([])
-		self.logL_model  = None
+		self.theta_train    = np.array([])
+		self.dist_train     = np.array([])
+		self.distance_model = None
 
-	def prepare_logL_model(self, model=None, kernel=None, alpha=1e-10, optimizer='fmin_l_bfgs_b', n_restarts_optimizer=3):
+	def prepare_distance_model(self, model=None, kernel=None, alpha=1e-10, optimizer='fmin_l_bfgs_b', n_restarts_optimizer=3):
 		if model is not None:
-			self.logL_model = model
+			self.distance_model = model
 		else:
-			self.logL_model = GaussianProcessRegressor(kernel=kernel, alpha=alpha, optimizer=optimizer, n_restarts_optimizer=n_restarts_optimizer)
+			self.distance_model = GaussianProcessRegressor(kernel=kernel, alpha=alpha, optimizer=optimizer, n_restarts_optimizer=n_restarts_optimizer)
 
-	def learn_logL(self, n_train=None):
+	def create_dataset(self, n_train=None):
 		nEnd = self.n_train_init
 		if n_train is not None: 
 			if n_train>len(self.dist_train):
@@ -59,15 +59,17 @@ class ABC_gpL:
 			dist_train_  = self.distance(sim_train_, self.obs)
 			self.dist_train  = np.append(self.dist_train, dist_train_)
 
+	def learn_distance(self, n_train=None):
+		self.create_dataset(n_train=n_train)
 
-		if self.logL_model is None:
-			self.prepare_logL_model()
+		if self.distance_model is None:
+			self.prepare_distance_model()
 
-		self.logL_model.fit(self.theta_train, -self.dist_train)
-		print('Score:', self.logL_model.score(self.theta_train, -self.dist_train))
+		self.distance_model.fit(self.theta_train, self.dist_train)
+		print('Score:', self.distance_model.score(self.theta_train, self.dist_train))
 
 	def run_mcmc(self, n_samples=None):
-		assert self.logL_model is not None
+		assert self.distance_model is not None
 		if n_samples is not None:
 			self.mcmc_sampler_info['n_samples'] = n_samples
 
@@ -79,11 +81,14 @@ class ABC_gpL:
 
 		def log_probability(theta):
 			lp = log_prior(theta)
-			# print(lp, type(theta), theta.shape)
 			if not np.isfinite(lp):
 				return -np.inf
 			if theta.ndim==1: theta = theta[None,:]
-			return lp + self.logL_model.predict(theta)
+			d_mean, d_std = self.distance_model.predict(theta, return_std=True)
+			return lp - d_mean**2/d_std**2
+
+		# self.log_prior = log_prior
+		# self.log_probability = log_probability
 
 		pos_fn = lambda n=1: np.array([np.random.random(n)*(self.theta_range[ke][1]-self.theta_range[ke][0])+self.theta_range[ke][0] for ke in self.theta_range.keys()]).T
 		pos = pos_fn(self.mcmc_sampler_info['nwalkers'])
@@ -103,8 +108,4 @@ class ABC_gpL:
 
 		flat_samples = sampler.get_chain(discard=100, thin=1, flat=True)
 		return flat_samples
-
-
-
-
 
