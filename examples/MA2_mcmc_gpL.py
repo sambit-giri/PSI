@@ -1,4 +1,6 @@
 import numpy as np 
+import matplotlib.pyplot as plt 
+from psi import ABC_gpL
 
 def MA2(t1, t2, n_obs=100, batch_size=1, random_state=None):
     # Make inputs 2d arrays for numpy broadcasting with w
@@ -29,10 +31,56 @@ plt.plot(MA2(t1_true, t2_true).ravel(), ls='-', label='obs1');
 plt.plot(MA2(t1_true, t2_true).ravel(), ls='-', label='obs2');
 
 plt.legend()
+plt.show()
 
 
 
 ## ABC
+
+#### 1 param
+
+def simulator_1p_1(theta):
+	t1, t2 = theta, t2_true
+	x = MA2(t1, t2)
+	return autocov(x)
+
+def simulator_1p(theta):
+	out = np.array([])
+	for i in range(theta.shape[0]):
+		out = np.append(out, simulator_1p_1(theta[i]))
+	return out[:,None]
+
+def distance_1p(S1, S2):
+	if S1.ndim==1: S1 = S1[:,None]
+	if S2.ndim==1: S2 = S2[:,None]
+	return ((S1-S2)**2).sum(axis=1)
+
+
+theta_true_1p  = np.array([t1_true])
+y_obs_1p       = simulator_1p(np.array([t1_true])) 
+theta_range_1p = {'t1': [-1,2]} 
+
+print('Inferring 1 parameter.')
+
+abc_1p = ABC_gpL(simulator_1p, distance_1p, y_obs_1p, 
+				theta_sampler=None, theta_range=theta_range_1p, n_train_init=100,
+				mcmc_sampler=None, mcmc_sampler_info=None
+				)
+abc_1p.create_dataset(5000)
+abc_1p.learn_distance()
+flat_samples_1p = abc_1p.run_mcmc(5000)  
+
+
+import corner
+
+labels_1p = ['t1', 't2']
+fig_1p = corner.corner(
+    flat_samples_1p, labels=labels_1p, truths=theta_true_1p
+);
+
+plt.show()
+
+### 2 param
 
 def simulator_1(theta):
 	t1, t2 = theta 
@@ -40,6 +88,8 @@ def simulator_1(theta):
 	return autocov(x)
 
 def simulator(theta):
+	if theta.ndim==1:
+		return simulator_1(theta)
 	out = np.array([])
 	for i in range(theta.shape[0]):
 		out = np.append(out, simulator_1(theta[i]))
@@ -49,46 +99,29 @@ def distance(S1, S2):
 	return ((S1-S2)**2).sum(axis=1)
 
 
+theta_true = np.array([t1_true, t2_true])
+y_obs = simulator(theta_true) 
+theta_range = {'t1': [-1,2], 't2': [-1,2]} 
+
+print('Inferring 2 parameter.')
+
 abc = ABC_gpL(simulator, distance, y_obs, 
 				theta_sampler=None, theta_range=theta_range, n_train_init=100,
 				mcmc_sampler=None, mcmc_sampler_info=None
 				)
-abc.learn_logL()
+abc.learn_distance(1000)
+flat_samples = abc.run_mcmc(50000)  
 
 
 
+import corner
 
-def log_prior(theta):
-	for i,ke in enumerate(abc.theta_range.keys()):
-		if theta[i]<abc.theta_range[ke][0] or theta[i]>abc.theta_range[ke][1]:
-			return -np.inf
-	return 0.0
+labels = ['t1', 't2']
+fig = corner.corner(
+    flat_samples, labels=labels, truths=theta_true
+)
 
-def log_probability(theta):
-	if theta.ndim==1: theta = theta[None,:]
-	lp = log_prior(theta)
-	print(lp, type(theta), theta.shape)
-	if not np.isfinite(lp):
-		return -np.inf
-	return lp + abc.logL_model.predict(theta)
-
-pos_fn = lambda n=1: np.array([np.random.random(n)*(abc.theta_range[ke][1]-abc.theta_range[ke][0])+abc.theta_range[ke][0] for ke in abc.theta_range.keys()]).T
-pos = pos_fn(abc.mcmc_sampler_info['nwalkers'])
-nwalkers, ndim = pos.shape
-n_samples = abc.mcmc_sampler_info['n_samples'] if 'n_samples' in abc.mcmc_sampler_info.keys() else 5**ndim
-
-print(abc.mcmc_sampler_info['n_samples'])
-sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability, args=(), 
-						pool=self.mcmc_sampler_info['pool'], 
-						backend=self.mcmc_sampler_info['backend']
-						)
-sampler.run_mcmc(pos, self.mcmc_sampler_info['n_samples'], progress=True)
-self.sampler = sampler
-
-tau = sampler.get_autocorr_time()
-print('Autocorrelation time:', tau)
-
-flat_samples = sampler.get_chain(discard=tau*2, thin=1, flat=True)
+plt.show()
 
 
 
@@ -98,7 +131,3 @@ flat_samples = sampler.get_chain(discard=tau*2, thin=1, flat=True)
 
 
 
-
-
-
-theta_range = {'t1': [0,2], 't2': [0,2]} 
