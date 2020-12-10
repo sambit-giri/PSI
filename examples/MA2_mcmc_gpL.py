@@ -1,8 +1,8 @@
 import numpy as np 
 import matplotlib.pyplot as plt 
 
-# import corner
-# from psi import ABC_gpL
+import corner
+from psi.infer_sampler import ABC_gpL
 
 def MA2(t1, t2, n_obs=100, batch_size=1, random_state=None):
     # Make inputs 2d arrays for numpy broadcasting with w

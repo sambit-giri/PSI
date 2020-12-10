@@ -19,10 +19,10 @@ from . import bayesian_optimisation
 from . import lfire
 from . import rejectionABC
 from . import corner
-from . import corner_mcmc_chains
+# from . import corner_mcmc_chains
 from . import kernel_density
 
-from .infer_sampler import *
+from . import infer_sampler
 
 #Suppress warnings from zero-divisions and nans
 import numpy
