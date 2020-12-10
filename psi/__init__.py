@@ -22,7 +22,7 @@ from . import corner
 from . import corner_mcmc_chains
 from . import kernel_density
 
-from infer_sampler import *
+from .infer_sampler import *
 
 #Suppress warnings from zero-divisions and nans
 import numpy
