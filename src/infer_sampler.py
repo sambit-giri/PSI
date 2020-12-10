@@ -85,7 +85,7 @@ class ABC_gpL:
 				return -np.inf
 			if theta.ndim==1: theta = theta[None,:]
 			d_mean, d_std = self.distance_model.predict(theta, return_std=True)
-			return lp - d_mean**2/d_std**2
+			return lp - d_mean**2 #/d_std**2
 
 		# self.log_prior = log_prior
 		# self.log_probability = log_probability
