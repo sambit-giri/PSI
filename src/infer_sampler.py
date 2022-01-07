@@ -68,6 +68,15 @@ class ABC_gpL:
 		self.distance_model.fit(self.theta_train, self.dist_train)
 		print('Score:', self.distance_model.score(self.theta_train, self.dist_train))
 
+	def learn_distance_BO(self, tol=0.01):
+		self.create_dataset(n_train=n_train)
+
+		if self.distance_model is None:
+			self.prepare_distance_model()
+
+		self.distance_model.fit(self.theta_train, self.dist_train)
+		print('Score:', self.distance_model.score(self.theta_train, self.dist_train))
+
 	def run_mcmc(self, n_samples=None):
 		assert self.distance_model is not None
 		if n_samples is not None:

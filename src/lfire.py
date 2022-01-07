@@ -358,5 +358,13 @@ class LFIRE_BayesianOpt_ShrinkSpace:
 
 
 
-LFIRE = LFIRE_core
+# LFIRE = LFIRE_core
+import emcee
+
+class LFIRE(emcee.EnsembleSampler):
+	"""docstring for LFIRE"""
+	def __init__(self, **arg):
+		super(LFIRE, self).__init__(**arg)
+		#self.arg = arg
+
 

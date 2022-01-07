@@ -1,382 +1,435 @@
 import numpy as np
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import DotProduct, WhiteKernel
-from sklearn.model_selection import KFold
-from scipy.integrate import simps
-import pickle
-import warnings 
+import warnings, random
 warnings.filterwarnings("ignore")
+
+import pickle, emcee
+from multiprocessing import Pool, cpu_count
+from glob import glob
+from time import time, sleep
+from scipy.stats import gaussian_kde
+
+from dynesty import NestedSampler, DynamicNestedSampler
+from dynesty.utils import resample_equal
+from dynesty import plotting as dyplot
+
 from . import distances
 from . import bayesian_optimisation as bopt
 from . import helper_functions as hf 
 
-def _grid_bounds(bounds, n_grid=20):
-	def add_dim_to_grid(bound, n_grid=100, init_grid=None):
-		if init_grid is None:
-			final_grid = np.linspace(bound[0], bound[1], n_grid)
+from skopt import gp_minimize
+from skopt import dump, load
+from skopt import callbacks
+from skopt.callbacks import CheckpointSaver
+
+from GPyOpt.methods import BayesianOptimization
+# BayesianOptimization = bopt.BayesianOptimization_GPyOpt
+
+def dict_get_remove(a, key, default=None, remove=True):
+	out = a.get(key, default)
+	if remove and key in a.keys(): 
+		a.pop(key)
+	return out, a
+
+def _dynesty_run(log_probability, prior_range, **kwargs):
+	space = prior_range if isinstance(prior_range,list) else [(prior_range[ke][0], prior_range[ke][1]) for ke in prior_range.keys()]
+	mins  = np.array([ii[0] for ii in space])
+	maxs  = np.array([ii[1] for ii in space])
+	def prior_transform(theta):
+		return mins + (maxs-mins)*theta
+
+	n_jobs = kwargs.get('n_jobs', 1)
+	nlive  = kwargs.get('nlive', 1024)      # number of live points
+	bound  = kwargs.get('bound', 'multi')   # use MutliNest algorithm for bounds
+	sample = kwargs.get('sample', 'unif')   # uniform sampling
+	tol  = kwargs.get('tol', 0.01)          # the stopping criterion
+	ndim = len(mins)
+
+	if n_jobs>1:
+		with Pool() as pool:
+			# sampler = NestedSampler(log_probability, prior_transform, ndim, bound=bound, sample=sample, nlive=nlive, pool=pool, queue_size=8)
+			sampler = DynamicNestedSampler(log_probability, prior_transform, ndim, bound=bound, sample=sample, pool=pool, queue_size=8)
+			t0 = time()
+			sampler.run_nested(nlive_init=nlive, dlogz_init=tol, print_progress=True) 
+			t1 = time()
+	else:
+		# sampler = NestedSampler(log_probability, prior_transform, ndim, bound=bound, sample=sample, nlive=nlive)
+		sampler = DynamicNestedSampler(log_probability, prior_transform, ndim, bound=bound, sample=sample)
+		t0 = time()
+		sampler.run_nested(nlive_init=nlive, dlogz_init=tol, print_progress=True) 
+		t1 = time()
+	timedynesty = (t1-t0)
+	print("Time taken to run 'dynesty' (in static mode) is {:.2f} seconds".format(timedynesty))
+	res = sampler.results # get results dictionary from sampler
+	# print(res.summary())
+	# draw posterior samples
+	weights = np.exp(res['logwt'] - res['logz'][-1])
+	samples_dynesty = resample_equal(res.samples, weights)
+	return {'weighted_samples': samples_dynesty, 'samples': res.samples, 'weights': weights}
+
+def _emcee_run(n_samples, nwalkers, ndim, log_probability, pos, filename, reset_sampler, n_jobs=1, **kwargs_emcee):
+	print(filename)
+	moves = kwargs_emcee.get('moves', emcee.moves.WalkMove())
+	print('Move used:', moves)
+
+	backend = emcee.backends.HDFBackend(filename) 
+	if reset_sampler or not glob(filename): 
+		backend.reset(nwalkers, ndim)
+		if n_jobs>1:
+			with Pool(n_jobs) as pool:
+				sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability, backend=backend, pool=pool, moves=moves)
+				sampler.run_mcmc(pos, n_samples, progress=True);
 		else:
-			final_grid = [np.append(gg,nn) if type(gg)==np.ndarray else [gg,nn] for gg in init_grid for nn in np.linspace(bound[0], bound[1], n_grid)]
-		return np.array(final_grid)
-	ndim_param = bounds.shape[0]
-	grid = add_dim_to_grid(bounds[0], n_grid=n_grid, init_grid=None)
-	if ndim_param==1: return grid
-	for bound in bounds[1:]:
-		grid = add_dim_to_grid(bound, n_grid=n_grid, init_grid=grid)
-	return grid
+			sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability, backend=backend, moves=moves)
+			sampler.run_mcmc(pos, n_samples, progress=True);
+	else:
+		old_iter = backend.iteration
+		print('Previous run contains {} iterations.'.format(old_iter))
+		if n_samples>old_iter:
+			print('Continuing the chains...')
+			sleep(0.5)
+			if n_jobs>1:
+				with Pool(n_jobs) as pool:
+					sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability, backend=backend, pool=pool, moves=moves)
+					sampler.run_mcmc(None, n_samples-old_iter, progress=True);
+			else:
+				sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability, backend=backend, moves=moves)
+				sampler.run_mcmc(None, n_samples-old_iter, progress=True);
+		else:
+			sampler = emcee.EnsembleSampler(backend.shape[0], backend.shape[1], log_probability, backend=backend, moves=moves)
+	return sampler
 
-class BOLFI_1param:
-	def __init__(self, simulator, distance, observation, prior, bounds, N_init=5, gpr=None, max_iter=100, cv_JS_tol=0.01, successive_JS_tol=0.01, exploitation_exploration=None, sigma_tol=0.001):
-		self.N_init  = N_init
-		self.gpr = GaussianProcessRegressor() if gpr is None else gpr
-		self.simulator = simulator
-		self.distance  = distance
-		self.y_obs = observation
-		param_names = [kk for kk in prior]
-		self.bounds = np.array([bounds[kk] for kk in param_names])
-		self.sample_prior = lambda: np.random.uniform(low=self.bounds[0,0], high=self.bounds[0,1], size=1)
-		self.xout = np.sort(np.array([self.sample_prior() for i in range(100)]), axis=0)
-		self.max_iter = max_iter
-		self.params = np.array([])
-		self.post_mean_unnorm  = []
-		self.post_mean_normmax = []
-		self.cv_JS_tol  = cv_JS_tol
-		self.cv_JS_dist = {'mean':[], 'std':[]}
-		self.successive_JS_tol  = successive_JS_tol
-		self.successive_JS_dist = []
+def read_sampler_emcee(filename=None, sampler=None):
+	if filename is not None:
+		backend = emcee.backends.HDFBackend(filename) 
+		sampler = emcee.EnsembleSampler(backend.shape[0], backend.shape[1], None, backend=backend)
+	# if sampler is None:
+	# 	sampler = self.sampler 
+	return sampler 
 
-		self.exploitation_exploration = exploitation_exploration
-		self.sigma_tol = sigma_tol
+def get_chain_emcee(discard=0, filename=None, sampler=None):
+	sampler = read_sampler_emcee(filename=filename, sampler=sampler)
+	tau = sampler.get_autocorr_time(quiet=True)
+	print('autocorr_time:', tau)
+	if discard=='tau': discard = 3*max(tau.astype(int))
+	flat_samples = sampler.get_chain(discard=discard, flat=True) 
+	flat_logprob = sampler.get_log_prob(discard=discard, flat=True) 
+	# print(flat_samples.shape, flat_logprob.shape)
+	return flat_samples, flat_logprob
 
-	def fit_model(self, params, dists, cv=True):
-		X = params.reshape(-1,1) if params.ndim==1 else params
-		y = dists.reshape(-1,1) if dists.ndim==1 else dists
 
-		n_cv = 10 if y.size>20 else 5
-		kf = KFold(n_splits=n_cv)
-		pdfs = []
-		for train_index, test_index in kf.split(X):
-			X_train, X_test = X[train_index], X[test_index]
-			y_train, y_test = y[train_index], y[test_index]
-			self.gpr.fit(X_train, y_train)
-			y_pred, y_std = self.gpr.predict(self.xout, return_std=True)
-			unnorm_post_mean = np.exp(-y_pred/2.)
-			pdfs.append(unnorm_post_mean)
-		
-		cvdist = np.array([distances.jensenshannon(p1,p2) for p1 in pdfs for p2 in pdfs])
-		self.cv_JS_dist['std'].append(cvdist.std())
-		self.cv_JS_dist['mean'].append(cvdist.mean())
-		y_pred, y_std = self.gpr.predict(self.xout, return_std=True)
-		unnorm_post_mean = np.exp(-y_pred/2.)
-		norm_post_mean   = unnorm_post_mean/unnorm_post_mean.max()
-		norm_post_std    = 0.5*y_std.flatten()*norm_post_mean.flatten()
-		self.sigma_theta = norm_post_std
-		self.post_mean_unnorm.append(unnorm_post_mean)
-		self.post_mean_normmax.append(norm_post_mean)
-		return self.cv_JS_dist['mean'][-1] #cvdist.std()
+class BOLFI: 
+	''' 
+	Bayesian optimisation for Likelihood-free Inference. 
+	''' 
+	
+	def __init__(self, distance, prior_range, obs=None, distance_kernel='exp', verbose=True, package='GPyOpt', learn_log_dist=False): 
+		# self.simulator = simulator 
+		self.distance    = distance 
+		self.prior_range = prior_range 
+		if distance_kernel in [None, 'exp']: self.distance_kernel = lambda u: np.exp(-u/2)  
+		self.verbose = verbose 
+		self.obs = obs 
+		self.package = package 
+		self.learn_log_dist = learn_log_dist
+	
+	def save_likelihood_model(self, filename): 
+		try: self.J_save = {'model': self.J_full.models[-1],  
+		                     'X': self.J_full.x_iters,  
+		                     'y': self.J_full.func_vals} 
+		except: self.J_save = {'model': self.J_full.model,  
+		                        'X': self.J_full.X,  
+		                        'y': self.J_full.Y} 
+		pickle.dump(self.J_save, open(filename,'wb')) 
+		print('Saved likelihood model:', filename) 
 
-	def run(self, max_iter=None):
-		if max_iter is not None: self.max_iter = max_iter
-		#gpr = self.gpr
-		start_iter = self.params.size
-		# Initialization
-		if start_iter<self.N_init:
-			params  = np.array([self.sample_prior() for i in range(self.N_init)]).squeeze()
-			sim_out = np.array([self.simulator(i) for i in params])
-			dists   = np.array([self.distance(self.y_obs, ss) for ss in sim_out])
-			self.params = params
-			self.dists  = dists
-			msg = self.fit_model(self.params, self.dists)
-			hf.loading_verbose('{0:.6f}'.format(msg))
-		# Further sampling
-		start_iter = self.params.size
-		condition1, condition2 = False, False
-		for n_iter in range(start_iter,self.max_iter):
-			if condition1 and condition2: break
-			X = self.params.reshape(-1,1) if self.params.ndim==1 else self.params
-			y = self.dists.reshape(-1,1) if self.dists.ndim==1 else self.dists
-			
-			if self.sigma_tol is not None:
-				self.exploitation_exploration = 1./self.sigma_tol if np.any(self.sigma_theta>self.sigma_tol) else 1.
-			#X_next = bopt.propose_location(bopt.expected_improvement, X, y, self.gpr, self.bounds[0].reshape(1,-1), n_restarts=10).T
-			X_next = bopt.propose_location(bopt.negativeGP_LCB, X, y, self.gpr, self.bounds[0].reshape(1,-1), n_restarts=10, xi=self.exploitation_exploration).T
+	def load_likelihood_model(self, filename): 
+		self.J_save = pickle.load(open(filename, 'rb')) 
+		try: self.cook_likelihood(self.J_full.models[-1])#, package='skopt') 
+		except: self.cook_likelihood(self.J_full.model)#, package='GPyOpt') 
+		print('Previous likelihood model loaded.') 
+	
+	def cook_likelihood(self, gpmodel):
+		if self.package=='GPyOpt': 
+			self.gp_Jmu = lambda x: gpmodel.predict(x if x.ndim==2 else x[None,:])[0].squeeze()
+			self.gp_Jsigma = lambda x: gpmodel.predict(x if x.ndim==2 else x[None,:])[1].squeeze()
+		else: 
+			self.gp_Jmu = lambda x: gpmodel.predict(x if x.ndim==2 else x[:,None])
+			self.gp_Jsigma = lambda x: gpmodel.predict(x if x.ndim==2 else x[:,None], return_std)[1]
 
-			y_next = self.simulator(X_next)
-			d_next = self.distance(self.y_obs, y_next)
+		if self.learn_log_dist:
+			self.gp_logL = lambda x: self.distance_kernel(np.exp(self.gp_Jmu(x))) 
+		else:
+			self.gp_logL = lambda x: self.distance_kernel(self.gp_Jmu(x)) 
+	  
+	def learn_likelihood(self, obs=None, gpmodel=None, reset_model=False,  
+		n_calls=100, n_random_starts=None, n_initial_points=None,  
+		initial_point_generator='random', acq_func='EI', acq_optimizer='auto',  
+		random_state=None, verbose=False, callback=None, n_points=10000,  
+		n_restarts_optimizer=5, xi=0.01, kappa=1.96, noise='gaussian',  
+		n_jobs=1, model_queue_size=None, batch_size=1, filename=None, 
+		acquisition_optimizer_type='lbfgs', **kwargs): 
 
-			self.params = np.append(self.params, X_next) 
-			self.dists  = np.append(self.dists, d_next)
-			sucJSdist   = distances.jensenshannon(self.post_mean_normmax[-1], self.post_mean_normmax[-2])[0] if len(self.post_mean_normmax)>1 else 10
-			self.successive_JS_dist.append(sucJSdist)
+		if obs is not None: self.obs = obs 
+		if self.obs is None: 
+			print('Provide obs to learn the likelihood.') 
+			return None 
 
-			msg = self.fit_model(self.params, self.dists)
-			hf.loading_verbose('{0:6d}|{1:.6f}|{1:.6f}'.format(n_iter+1,msg,sucJSdist))
-			#condition1 = self.cv_JS_dist['mean'][-1]+self.cv_JS_dist['std'][-1]<self.cv_JS_tol
-			condition1 = self.cv_JS_dist['mean'][-1]<self.cv_JS_tol
-			condition2 = self.successive_JS_dist[-1]<self.successive_JS_tol
+		x0, y0   = None, None 
+		callback = None 
+		if filename is not None and not reset_model: 
+			# checkpoint_saver = CheckpointSaver(filename, compress=9) # keyword arguments will be passed to `skopt.dump` 
+			# callback = [checkpoint_saver] 
+			if glob(filename): 
+				self.load_likelihood_model(filename) 
+				x0 = self.J_save['X'] 
+				y0 = self.J_save['y'] 
+				if gpmodel is None: gpmodel = self.J_save['model'] 
 
-class BOLFI:
-	def __init__(self, simulator, distance, observation, prior, bounds, 
-		N_init=5, gpr=None, max_iter=100, cv_JS_tol=0.01, successive_JS_tol=0.01, 
-		n_grid_out=100, exploitation_exploration=None, sigma_tol=0.001, inside_nSphere=False, 
-		fill_value=np.nan, params=None, dists=None, batch=1, save_chain=False, keep_simulation=False):
+		space = self.prior_range if isinstance(self.prior_range,list) else [(self.prior_range[ke][0], self.prior_range[ke][1]) for ke in self.prior_range.keys()] 
+		if n_initial_points is None: n_initial_points = 5**len(space) 
 
-		self.N_init  = N_init
-		self.gpr = GaussianProcessRegressor() if gpr is None else gpr
-		self.simulator = simulator
-		self.distance  = distance
-		self.y_obs = observation
-		self.param_names = [kk for kk in prior]
-		self.param_bound = bounds
-		self.bounds = np.array([bounds[kk] for kk in self.param_names])
-		self.bound_mins = self.bounds.min(axis=1)
-		self.bound_maxs = self.bounds.max(axis=1)
-		#self.sample_prior = {}
-		#for i,kk in enumerate(self.param_names):
-		#	self.sample_prior[kk] = lambda: bounds[kk][0]+(bounds[kk][1]-bounds[kk][0])*np.random.uniform()
-		self.batch = batch
-		self.save_chain = save_chain if isinstance(save_chain, (str)) or False else 'sample_chain'
-		self.all_simulations = [] if keep_simulation else None
+		print('Learning synthetic likelihood using Bayesian Optimisation...') 
+		if self.learn_log_dist:
+			f = lambda x: np.log(self.distance(x)) #self.simulator(x), self.obs) 
+		else:
+			f = lambda x: self.distance(x) #self.simulator(x), self.obs) 
 
-		self.xout = _grid_bounds(self.bounds, n_grid=n_grid_out)
-		self.max_iter = max_iter
-		self.params = np.array([])
-		self.post_mean_unnorm  = []
-		self.post_mean_normmax = []
-		self.cv_JS_tol  = cv_JS_tol
-		self.cv_JS_dist = {'mean':[], 'std':[]}
-		self.successive_JS_tol  = successive_JS_tol
-		self.successive_JS_dist = []	
+		if self.package=='skopt': 
+			res = gp_minimize(f,          # the function to minimize 
+					space,              # the bounds on each dimension of x 
+					base_estimator=gpmodel,  
+					n_calls=n_calls,  
+					n_random_starts=n_random_starts,  
+					n_initial_points=n_initial_points,  
+					initial_point_generator=initial_point_generator,  
+					acq_func=acq_func,  
+					acq_optimizer=acq_optimizer,  
+					x0=x0, y0=y0,  
+					random_state=random_state,  
+					verbose=verbose,  
+					callback=callback,  
+					n_points=n_points,  
+					n_restarts_optimizer=n_restarts_optimizer,  
+					xi=xi,  
+					kappa=kappa,  
+					noise=noise,  
+					n_jobs=n_jobs,  
+					# model_queue_size=model_queue_size, 
+					) 
+			self.J_full = res  
+			self.cook_likelihood(self.J_full.models[-1]) 
+		else: 
+			domain = [{'name': 'var_{}'.format(i), 'type': 'continuous', 'domain': (space[i][0],space[i][1])} for i in range(len(space))] 
+			res = BayesianOptimization( 
+						f, 
+						domain=domain, 
+						constraints=None, 
+						cost_withGradients=None, 
+						model_type='GP', 
+						X=x0, 
+						Y=y0, 
+						initial_design_numdata=n_initial_points, 
+						initial_design_type=initial_point_generator, 
+						acquisition_type=acq_func, 
+						normalize_Y=False, 
+						exact_feval=False, 
+						acquisition_optimizer_type=acquisition_optimizer_type, 
+						model_update_interval=1, 
+						evaluator_type='sequential', #'thompson_sampling' 
+						batch_size=batch_size, 
+						num_cores=n_jobs, 
+						verbosity=True, 
+						verbosity_model=True, 
+						maximize=False, 
+						de_duplication=False, 
+						**kwargs
+						) 
+			res.run_optimization(max_iter=n_calls, verbosity=verbose) 
+			self.J_full = res  
+			self.cook_likelihood(self.J_full.model) 
+		print('...done') 
+		if filename is not None: self.save_likelihood_model(filename)
 
-		self.exploitation_exploration = exploitation_exploration
-		self.sigma_tol = sigma_tol	
-		self.inside_nSphere = inside_nSphere
-		self.fill_value = fill_value
+	def sample_posterior(self, n_samples=5000, method='MCMC', **kwargs):
+		# print(kwargs)
+		log_prior = kwargs.get('log_prior', None)
+		if method=='MCMC':
+			print('MCMC sampling using emcee...')
+			filename, kwargs = dict_get_remove(kwargs, 'filename', None) # filename = kwargs.get('filename', None)
+			nwalkers, kwargs = dict_get_remove(kwargs, 'nwalkers', 16)   # nwalkers = kwargs.get('nwalkers', 16)
+			reset_sampler, kwargs = dict_get_remove(kwargs, 'reset_sampler', True) # reset_sampler = kwargs.get('reset_sampler', True)
+			discard, kwargs = dict_get_remove(kwargs, 'discard', 0)      # discard = kwargs.get('discard', 0)
 
-		if params is not None and dists is None:
-			dists = np.array([self.sim_n_dist(i) for i in params])
+			sampler = self.sample_MCMC(n_samples, log_prior=log_prior, nwalkers=nwalkers, filename=filename, 
+									reset_sampler=reset_sampler, n_jobs=4, **kwargs)
+			self.sampler_info = sampler
+			samples, logprobs = get_chain_emcee(discard=discard, sampler=sampler)
+		elif method=='NestedSampling':
+			res = self.sample_NestedSampling(**kwargs)
+			self.sampler_info = res 
+			return res['samples']
+		elif method=='IS':
+			print('Importance Sampling...')
+			proposal, kwargs = dict_get_remove(kwargs, 'proposal', 'uniform')
+			samples = self.sample_IS(n_samples, log_prior=log_prior, proposal=proposal)
+		print('...done')
+		return samples 
 
-		self.params = np.array([]) if params is None else params
-		self.dists  = np.array([]) if dists is None else dists
+	def sample_MCMC(self, n_samples, log_prior=None, nwalkers=16,
+		filename=None, reset_sampler=True, n_jobs=4, **kwargs_emcee):
 
-	def sample_prior(self, kk):
-		return self.param_bound[kk][0]+(self.param_bound[kk][1]-self.param_bound[kk][0])*np.random.uniform()
+		space = self.prior_range if isinstance(self.prior_range,list) else [(self.prior_range[ke][0], self.prior_range[ke][1]) for ke in self.prior_range.keys()]
+		mins  = np.array([ii[0] for ii in space])
+		maxs  = np.array([ii[1] for ii in space])
+		pos = mins+(maxs-mins) * np.random.uniform(0,1,size=(nwalkers, len(mins)))
+		nwalkers, ndim = pos.shape
 
-	def sim_n_dist(self, xi):
-		if self.inside_nSphere:
-			xr = np.sum(((xi-self.bound_mins)/(self.bound_maxs-self.bound_mins)-0.5)**2)
-			if xr>0.25: return self.fill_value
-		yi = self.simulator(xi)
-		di = self.distance(self.y_obs, yi)
-		if self.all_simulations is not None: self.all_simulations.append(yi)
-		return di
+		if log_prior is None: 
+			log_prior = lambda x: np.log(np.product(mins<=x,axis=1)*np.product(x<=maxs,axis=1)) if x.ndim==2 else np.log(np.product(mins<=x)*np.product(x<=maxs))
+		log_probability = lambda x: np.asscalar(self.gp_logL(x)+log_prior(x)) if np.isfinite(log_prior(x)) else -np.inf 
 
-	def fit_model(self, params, dists):
-		X = params.reshape(-1,1) if params.ndim==1 else params
-		y = dists.reshape(-1,1) if dists.ndim==1 else dists
+		if filename is None: filename = 'dummy_bolfi_743.h5'
+		sampler = _emcee_run(n_samples, nwalkers, ndim, log_probability, pos, filename, reset_sampler, n_jobs=1, **kwargs_emcee)
+		return sampler
 
-		n_cv = 10 if y.size>50 else 5
-		kf = KFold(n_splits=n_cv)
-		pdfs = []
-		for train_index, test_index in kf.split(X):
-			X_train, X_test = X[train_index], X[test_index]
-			y_train, y_test = y[train_index], y[test_index]
-			args = np.isfinite(y_train.flatten()) 
-			self.gpr.fit(X_train[args], y_train[args])
-			y_pred, y_std = self.gpr.predict(self.xout, return_std=True)
-			unnorm_post_mean = np.exp(-y_pred/2.)
-			pdfs.append(unnorm_post_mean)
-		
-		cvdist = np.array([distances.jensenshannon(p1,p2) for p1 in pdfs for p2 in pdfs])
-		self.cv_JS_dist['std'].append(cvdist.std())
-		self.cv_JS_dist['mean'].append(cvdist.mean())
+	def sample_NestedSampling(self, log_prior=None, **kwargs):
+		space = self.prior_range if isinstance(self.prior_range,list) else [(self.prior_range[ke][0], self.prior_range[ke][1]) for ke in self.prior_range.keys()]
+		mins  = np.array([ii[0] for ii in space])
+		maxs  = np.array([ii[1] for ii in space])
 
-		args = np.isfinite(y.flatten()) 
-		self.gpr.fit(X[args], y[args])
-		y_pred, y_std = self.gpr.predict(self.xout, return_std=True)
-		unnorm_post_mean = np.exp(-y_pred/2.)
-		norm_post_mean   = unnorm_post_mean/unnorm_post_mean.max()
-		norm_post_std    = 0.5*y_std.flatten()*norm_post_mean.flatten()
-		self.sigma_theta = norm_post_std
-		self.post_mean_unnorm.append(unnorm_post_mean)
-		self.post_mean_normmax.append(norm_post_mean)
-		return self.cv_JS_dist['mean'][-1] #cvdist.std()
+		if log_prior is None: 
+			log_prior = lambda x: np.log(np.product(mins<=x,axis=1)*np.product(x<=maxs,axis=1)) if x.ndim==2 else np.log(np.product(mins<=x)*np.product(x<=maxs))
+		log_probability = lambda x: np.asscalar(self.gp_logL(x)+log_prior(x)) if np.isfinite(log_prior(x)) else -np.inf 
 
-	def get_next_point(self):
-		X = self.params.reshape(-1,1) if self.params.ndim==1 else self.params
-		y = self.dists.reshape(-1,1) if self.dists.ndim==1 else self.dists
+		out = _dynesty_run(log_probability, self.prior_range, **kwargs)
+		return out
 
-		if self.sigma_tol is not None:
-			self.exploitation_exploration = 1./self.sigma_tol if np.any(self.sigma_theta>self.sigma_tol) else 1.
-		args = np.isfinite(y.flatten())
-		#X_next = bopt.propose_location(bopt.expected_improvement, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10).T
-		X_next = bopt.propose_location_nSphere(bopt.negativeGP_LCB, X[args,:], y[args,:], self.gpr, self.bounds, n_restarts=10, xi=self.exploitation_exploration, batch=self.batch).T
-		return X_next
+	def sample_IS(self, n_samples, log_prior=None, proposal='uniform'):
+		space = self.prior_range if isinstance(self.prior_range,list) else [(self.prior_range[ke][0], self.prior_range[ke][1]) for ke in self.prior_range.keys()]
+		mins  = np.array([ii[0] for ii in space])
+		maxs  = np.array([ii[1] for ii in space])
 
-	def run(self, max_iter=None, trained_gpr=True):
-		if max_iter is not None: self.max_iter = max_iter
-		#gpr = self.gpr
-		start_iter = len(self.params)
-		# Initialization
-		if start_iter<self.N_init:
-			params  = np.array([[self.sample_prior(kk) for kk in self.param_names] for i in range(self.N_init)]).squeeze()
-			#sim_out = np.array([self._simulator(i) for i in params])
-			#dists   = np.array([self.distance(self.y_obs, ss) for ss in sim_out])
-			dists = np.array([self.sim_n_dist(i) for i in params])
-			self.params = params
-			self.dists  = dists
-			
-		msg = self.fit_model(self.params, self.dists)
-		hf.loading_verbose('{0:.6f}'.format(msg))
-		
-		# Further sampling
-		start_iter = len(self.params)
-		condition1, condition2 = False, False
-		#for start_iter in range(start_iter,self.max_iter):
-		while start_iter<self.max_iter:
-			if condition1 and condition2: break
+		if log_prior is None: 
+			log_prior = lambda x: np.log(np.product(mins<=x,axis=1)*np.product(x<=maxs,axis=1)) if x.ndim==2 else np.log(np.product(mins<=x)*np.product(x<=maxs))
+		log_probability = lambda x: self.gp_logL(x)+log_prior(x) 
+		func = lambda x: np.exp(log_probability(x))
+		out  = importance_sampling(func, n_samples, self.prior_range, proposal=proposal)
+		return out
 
-			X_next = self.get_next_point()
-			d_next = np.array([self.sim_n_dist(X_n.T) for X_n in X_next])
 
-			self.params = np.append(self.params, X_next, axis=0) 
-			self.dists  = np.append(self.dists, d_next)
-			sucJSdist   = distances.jensenshannon(self.post_mean_normmax[-1], self.post_mean_normmax[-2])[0] if len(self.post_mean_normmax)>1 else 10
-			self.successive_JS_dist.append(sucJSdist)
+def _grid_creator(mins, maxs, n_samples):
+	out = np.linspace(mins[0],maxs[0],n_samples)[:,None]
+	for mn,mx in zip(mins[1:],maxs[1:]):
+		# print(mn, mx, out.shape)
+		nx = np.linspace(mn,mx,n_samples)
+		out1 = []
+		for i1 in out:
+			for i2 in nx:
+				out1.append(np.append(i1,i2))  
+		out = np.array(out1)
+	return out 
 
-			start_iter = len(self.params)
-			msg = self.fit_model(self.params, self.dists)
-			hf.loading_verbose('{0:6d}|{1:.6f}|{1:.6f}'.format(start_iter+1,msg,sucJSdist))
-			#condition1 = self.cv_JS_dist['mean'][-1]+self.cv_JS_dist['std'][-1]<self.cv_JS_tol
-			condition1 = self.cv_JS_dist['mean'][-1]<self.cv_JS_tol
-			condition2 = self.successive_JS_dist[-1]<self.successive_JS_tol
+def importance_sampling(func, n_samples, prior_range, proposal='uniform'):
+	space = prior_range if isinstance(prior_range,list) else [(prior_range[ke][0], prior_range[ke][1]) for ke in prior_range.keys()]
+	mins  = np.array([ii[0] for ii in space])
+	maxs  = np.array([ii[1] for ii in space])
+	print('Initialising samples...')
+	if proposal=='uniform':
+		pos0  = mins+(maxs-mins) * np.random.uniform(0,1,size=(n_samples,len(mins)))
+		proposal = lambda x: np.product(mins<=x,axis=1)*np.product(x<=maxs,axis=1)/n_samples if x.ndim==2 else np.product(mins<=x)*np.product(x<=maxs)/n_samples
+	elif proposal in ['gaussian', 'normal']:
+		pos0  = mins+(maxs-mins) * np.random.normal(0.5,1/3,size=(n_samples,len(mins)))
+		proposal = lambda x: np.product(np.exp(-((x-mins)/(maxs-mins)-0.5)**2/(1/3)**2),axis=1) if x.ndim==2 else np.product(np.exp(-((x-mins)/(maxs-mins)-0.5)**2/(1/3)**2))
+	elif proposal=='grid':
+		pos0 = _grid_creator(mins, maxs, n_samples)
+		proposal = lambda x: np.product(mins<=x,axis=1)*np.product(x<=maxs,axis=1)/n_samples if x.ndim==2 else np.product(mins<=x)*np.product(x<=maxs)/n_samples
+	print('...done')
+	wts  = func(pos0)/proposal(pos0); wts /= wts.sum()
+	pos1 = np.array(random.choices(pos0, weights=wts, k=n_samples))
+	return {'i': pos0, 'f':pos1, 'w': wts}
 
-		if trained_gpr:
-			print('\nFinal training of GPR for output.')
-			X = self.params.reshape(-1,1) if self.params.ndim==1 else self.params
-			y = self.dists.reshape(-1,1) if self.dists.ndim==1 else self.dists
-			args = np.isfinite(y.flatten()) 
-			self.gpr.fit(X[args], y[args])
 
-		if self.save_chain:
-			filename = self.save_chain.split('.pkl')[0]+'.pkl'
-			hf.save_model(filename, self)
+def sequential_importance_sampling(func, n_samples, prior_range, proposal='uniform', max_iter=10, kernel='EmpiricalCovariance'):
+	if kernel=='EmpiricalCovariance':
+		from sklearn.covariance import EmpiricalCovariance
+		cov_est = EmpiricalCovariance()
+	elif kernel=='LedoitWolf':
+		from sklearn.covariance import LedoitWolf
+		cov_est = LedoitWolf()
+	else:
+		cov_est = kernel
 
-class BOLFI_postGPR:
-	def __init__(self, simulator, distance, observation, prior, bounds, N_init=5, gpr=None, max_iter=100, cv_JS_tol=0.01, successive_JS_tol=0.01, n_grid_out=100, exploitation_exploration=None, sigma_tol=0.001, inside_nSphere=True, fill_value=1000):
-		self.N_init  = N_init
-		self.gpr = GaussianProcessRegressor() if gpr is None else gpr
-		self.simulator = simulator
-		self.distance  = distance
-		self.y_obs = observation
-		self.param_names = [kk for kk in prior]
-		self.param_bound = bounds
-		self.bounds = np.array([bounds[kk] for kk in self.param_names])
-		self.bound_mins = self.bounds.min(axis=1)
-		self.bound_maxs = self.bounds.max(axis=1)
-		#self.sample_prior = {}
-		#for i,kk in enumerate(self.param_names):
-		#	self.sample_prior[kk] = lambda: bounds[kk][0]+(bounds[kk][1]-bounds[kk][0])*np.random.uniform()
-		self.xout = _grid_bounds(self.bounds, n_grid=n_grid_out)
-		self.max_iter = max_iter
-		self.params = np.array([])
-		self.post_mean_unnorm  = []
-		self.post_mean_normmax = []
-		self.cv_JS_tol  = cv_JS_tol
-		self.cv_JS_dist = {'mean':[], 'std':[]}
-		self.successive_JS_tol  = successive_JS_tol
-		self.successive_JS_dist = []	
+	space = prior_range if isinstance(prior_range,list) else [(prior_range[ke][0], prior_range[ke][1]) for ke in prior_range.keys()]
+	mins  = np.array([ii[0] for ii in space])
+	maxs  = np.array([ii[1] for ii in space])
+	# print('Initialising samples...')
+	if proposal=='uniform':
+		pos0  = mins+(maxs-mins) * np.random.uniform(0,1,size=(n_samples,len(mins)))
+		proposal = lambda x: np.product(mins<=x,axis=1)*np.product(x<=maxs,axis=1)/n_samples if x.ndim==2 else np.product(mins<=x)*np.product(x<=maxs)/n_samples
+	elif proposal in ['gaussian', 'normal']:
+		pos0  = mins+(maxs-mins) * np.random.normal(0.5,1/3,size=(n_samples,len(mins)))
+		proposal = lambda x: np.product(np.exp(-((x-mins)/(maxs-mins)-0.5)**2/(1/3)**2),axis=1) if x.ndim==2 else np.product(np.exp(-((x-mins)/(maxs-mins)-0.5)**2/(1/3)**2))
+	elif proposal=='grid':
+		pos0 = _grid_creator(mins, maxs, n_samples)
+		proposal = lambda x: np.product(mins<=x,axis=1)*np.product(x<=maxs,axis=1)/n_samples if x.ndim==2 else np.product(mins<=x)*np.product(x<=maxs)/n_samples
+	# print('...done')
+	out = {'i': pos0}
 
-		self.exploitation_exploration = exploitation_exploration
-		self.sigma_tol = sigma_tol	
-		self.inside_nSphere = inside_nSphere
-		self.fill_value = fill_value
+	wts  = func(pos0)/proposal(pos0); wts /= wts.sum()
+	with tqdm(range(max_iter)) as rounds:
+		for i in rounds:
+			rounds.set_description('Round = {}/{}'.format(i+1,max_iter))
+			pos1 = np.array(random.choices(pos0, weights=wts, k=n_samples))
+			cov  = 2*cov_est.fit(pos1).covariance_ #numpy.cov(pos0, aweights=wts0) #
+			# print(cov)
+			pos2 = np.array([np.random.multivariate_normal(po, cov) for po in pos1])
+			ker2 = gaussian_kde(pos2.T)
+			wts  = func(pos2)/ker2(pos2.T); wts /= wts.sum()
+			pos0 = pos2.copy()
+	pos1 = np.array(random.choices(pos0, weights=wts, k=n_samples))
+	out['f'] = pos1
+	out['w'] = wts
+	return out
 
-	def sample_prior(self, kk):
-		return self.param_bound[kk][0]+(self.param_bound[kk][1]-self.param_bound[kk][0])*np.random.uniform()
 
-	def sim_n_dist(self, xi):
-		if self.inside_nSphere:
-			xr = np.sum(((xi-self.bound_mins)/(self.bound_maxs-self.bound_mins)-0.5)**2)
-			if xr>0.25: return self.fill_value
-		yi = self.simulator(xi)
-		di = self.distance(self.y_obs, yi)
-		return di
+def SMC_sampling(func, n_samples, prior_range, proposal='uniform', kernel='EmpiricalCovariance'):
+	'''
+	UNDER CONSTRUCTION
+	'''
+	if kernel=='EmpiricalCovariance':
+		from sklearn.covariance import EmpiricalCovariance
+		cov_est = EmpiricalCovariance()
+	elif kernel=='LedoitWolf':
+		from sklearn.covariance import LedoitWolf
+		cov_est = LedoitWolf()
+	else:
+		cov_est = kernel
 
-	def fit_model(self, params, dists):
-		X = params.reshape(-1,1) if params.ndim==1 else params
-		y = dists.reshape(-1,1) if dists.ndim==1 else dists
+	space = prior_range if isinstance(prior_range,list) else [(prior_range[ke][0], prior_range[ke][1]) for ke in prior_range.keys()]
+	mins  = np.array([ii[0] for ii in space])
+	maxs  = np.array([ii[1] for ii in space])
 
-		n_cv = 10 if y.size>50 else 5
-		kf = KFold(n_splits=n_cv)
-		pdfs = []
-		for train_index, test_index in kf.split(X):
-			X_train, X_test = X[train_index], X[test_index]
-			y_train, y_test = y[train_index], y[test_index]
-			self.gpr.fit(X_train, np.exp(-y_train/2.))
-			y_pred, y_std = self.gpr.predict(self.xout, return_std=True)
-			unnorm_post_mean = y_pred
-			pdfs.append(unnorm_post_mean)
-		
-		cvdist = np.array([distances.jensenshannon(p1,p2) for p1 in pdfs for p2 in pdfs])
-		self.cv_JS_dist['std'].append(cvdist.std())
-		self.cv_JS_dist['mean'].append(cvdist.mean())
+	if proposal=='uniform':
+		pos0 = mins+(maxs-mins) * np.random.uniform(0,1,size=(n_samples,len(mins)))
+		proposal = lambda x: np.product(mins<=x,axis=1)*np.product(x<=maxs,axis=1)/n_samples if x.ndim==2 else np.product(mins<=x)*np.product(x<=maxs)/n_samples
+	elif proposal in ['gaussian', 'normal']:
+		pos0  = mins+(maxs-mins) * np.random.normal(0.5,1/3,size=(n_samples,len(mins)))
+		proposal = lambda x: np.product(np.exp(-((x-mins)/(maxs-mins)-0.5)**2/(1/3)**2),axis=1) if x.ndim==2 else np.product(np.exp(-((x-mins)/(maxs-mins)-0.5)**2/(1/3)**2))
+	wts0  = proposal(pos0); wts0 /= wts0.sum()
 
-		self.gpr.fit(X, np.exp(-y/2.))
-		y_pred, y_std = self.gpr.predict(self.xout, return_std=True)
-		unnorm_post_mean = y_pred
-		norm_post_mean   = unnorm_post_mean/unnorm_post_mean.max()
-		norm_post_std    = y_std.flatten()
-		self.sigma_theta = norm_post_std
-		self.post_mean_unnorm.append(unnorm_post_mean)
-		self.post_mean_normmax.append(norm_post_mean)
-		return self.cv_JS_dist['mean'][-1] #cvdist.std()
+	max_iter = 5
+	with tqdm(range(max_iter)) as rounds:
+		for i in rounds:
+			rounds.set_description('Round = {}/{}'.format(i+1,max_iter))
+			pos1 = np.array(random.choices(pos0, weights=wts0, k=n_samples))
+			cov  = 2*cov_est.fit(pos1).covariance_ #numpy.cov(pos0, aweights=wts0) #
+			print(cov)
+			pos2 = np.array([np.random.multivariate_normal(po, cov) for po in pos1])
+			wts2 = func(pos2)/wts0; wts2 /= wts2.sum()
+			pos0, wts0 = pos2.copy(), wts2.copy()
+	return pos1, wts
 
-	def run(self, max_iter=None, trained_gpr=True):
-		if max_iter is not None: self.max_iter = max_iter
-		#gpr = self.gpr
-		start_iter = self.params.size
-		# Initialization
-		if start_iter<self.N_init:
-			params  = np.array([[self.sample_prior(kk) for kk in self.param_names] for i in range(self.N_init)]).squeeze()
-			#sim_out = np.array([self._simulator(i) for i in params])
-			#dists   = np.array([self.distance(self.y_obs, ss) for ss in sim_out])
-			dists = np.array([self.sim_n_dist(i) for i in params])
-			self.params = params
-			self.dists  = dists
-			msg = self.fit_model(self.params, self.dists)
-			hf.loading_verbose('{0:.6f}'.format(msg))
-		
-		# Further sampling
-		start_iter = len(self.params)
-		condition1, condition2 = False, False
-		for n_iter in range(start_iter,self.max_iter):
-			if condition1 and condition2: break
-			X = self.params.reshape(-1,1) if self.params.ndim==1 else self.params
-			y = self.dists.reshape(-1,1) if self.dists.ndim==1 else self.dists
 
-			if self.sigma_tol is not None:
-				self.exploitation_exploration = 1./self.sigma_tol if np.any(self.sigma_theta>self.sigma_tol) else 1.
-			#X_next = bopt.propose_location(bopt.expected_improvement, self._adjust_shape(self.params), self.posterior_params, self.gpr, self.lfi.bounds, n_restarts=10).T
-			X_next = bopt.propose_location(bopt.negativeGP_LCB, X, np.exp(-y/2.), self.gpr, self.bounds, n_restarts=10, xi=self.exploitation_exploration).T
 
-			#y_next = self._simulator(X_next.T)
-			#d_next = self.distance(self.y_obs, y_next)
-			d_next = self.sim_n_dist(X_next.T)
 
-			self.params = np.append(self.params, X_next, axis=0) 
-			self.dists  = np.append(self.dists, d_next)
-			sucJSdist   = distances.jensenshannon(self.post_mean_normmax[-1], self.post_mean_normmax[-2])[0] if len(self.post_mean_normmax)>1 else 10
-			self.successive_JS_dist.append(sucJSdist)
-
-			msg = self.fit_model(self.params, self.dists)
-			hf.loading_verbose('{0:6d}|{1:.6f}|{1:.6f}'.format(n_iter+1,msg,sucJSdist))
-			#condition1 = self.cv_JS_dist['mean'][-1]+self.cv_JS_dist['std'][-1]<self.cv_JS_tol
-			condition1 = self.cv_JS_dist['mean'][-1]<self.cv_JS_tol
-			condition2 = self.successive_JS_dist[-1]<self.successive_JS_tol
-
-		if trained_gpr:
-			print('\nFinal training of GPR for output.')
-			X = self.params.reshape(-1,1) if self.params.ndim==1 else self.params
-			y = self.dists.reshape(-1,1) if self.dists.ndim==1 else self.dists
-			self.gpr.fit(X, np.exp(-y/2.))
 
