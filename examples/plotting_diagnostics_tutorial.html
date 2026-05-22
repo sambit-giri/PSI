@@ -141,7 +141,7 @@
 </tbody>
 </table>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -172,8 +172,8 @@
 <section id="1-Generate-posteriors-from-toy-models">
 <h2>1 Generate posteriors from toy models<a class="headerlink" href="#1-Generate-posteriors-from-toy-models" title="Link to this heading"></a></h2>
 <p>We use <code class="docutils literal notranslate"><span class="pre">GaussianSignal</span></code> (2 parameters: mean <span class="math notranslate nohighlight">\(\mu\)</span>, std <span class="math notranslate nohighlight">\(\sigma\)</span>) and <code class="docutils literal notranslate"><span class="pre">NoisyLine</span></code> (2 parameters: slope <span class="math notranslate nohighlight">\(m\)</span>, intercept <span class="math notranslate nohighlight">\(b\)</span>) as test beds. Posteriors are approximated with <strong>IS</strong> (tight proposal) and <strong>SMC</strong> (broad prior).</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ── GaussianSignal setup ──────────────────────────────────────────────────────</span>
@@ -203,8 +203,17 @@
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+IS   particles=8000, true=[1.5 0.8]
+SMC  particles=2000, true=[1.5 0.8]
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ── NoisyLine setup ───────────────────────────────────────────────────────────</span>
@@ -222,13 +231,21 @@
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+NoisyLine IS  true=[-0.8  5. ]
+</pre></div></div>
+</div>
 </section>
 <hr class="docutils" />
 <section id="2-SampledDistribution">
 <h2>2 <code class="docutils literal notranslate"><span class="pre">SampledDistribution</span></code><a class="headerlink" href="#2-SampledDistribution" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">SampledDistribution</span></code> wraps weighted samples (e.g. from IS or MCMC) and provides all diagnostic metrics through a common interface.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">dist_is</span> <span class="o">=</span> <span class="n">SampledDistribution</span><span class="p">(</span>
@@ -249,10 +266,18 @@
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+n_params: 2
+</pre></div></div>
+</div>
 <section id="2a-print_stats-—-mean,-std,-and-credible-intervals">
 <h3>2a <code class="docutils literal notranslate"><span class="pre">print_stats</span></code> — mean, std, and credible intervals<a class="headerlink" href="#2a-print_stats-—-mean,-std,-and-credible-intervals" title="Link to this heading"></a></h3>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s1">&#39;── IS posterior ──────────────────────────────&#39;</span><span class="p">)</span>
@@ -264,11 +289,37 @@
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+── IS posterior ──────────────────────────────
+Parameter summary
+==================================================
+  \mu:  mean = 1.3584,  std = 0.0956
+    68% CI: [1.2735, 1.4594]
+    95% CI: [1.1850, 1.5386]
+  \sigma:  mean = 0.7453,  std = 0.0651
+    68% CI: [0.6728, 0.8134]
+    95% CI: [0.6025, 0.8785]
+
+── SMC posterior ─────────────────────────────
+Parameter summary
+==================================================
+  \mu:  mean = 1.3736,  std = 0.0876
+    68% CI: [1.2955, 1.4302]
+    95% CI: [1.2117, 1.5856]
+  \sigma:  mean = 0.7414,  std = 0.0779
+    68% CI: [0.6543, 0.8302]
+    95% CI: [0.6221, 0.9201]
+</pre></div></div>
+</div>
 </section>
 <section id="2b-Scalar-metrics">
 <h3>2b Scalar metrics<a class="headerlink" href="#2b-Scalar-metrics" title="Link to this heading"></a></h3>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s1">&#39;IS posterior metrics&#39;</span><span class="p">)</span>
@@ -286,11 +337,29 @@
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+IS posterior metrics
+  z-scores      : [1.481 0.841]
+  bias          : [-0.149 -0.051]
+  PIT           : [0.913 0.815]
+  Mahalanobis D : 1.552
+
+SMC posterior metrics
+  z-scores      : [1.444 0.753]
+  bias          : [-0.124 -0.063]
+  PIT           : [0.928 0.72 ]
+  Mahalanobis D : 1.762
+</pre></div></div>
+</div>
 </section>
 <section id="2c-KL-divergence-between-IS-and-SMC-posteriors">
 <h3>2c KL divergence between IS and SMC posteriors<a class="headerlink" href="#2c-KL-divergence-between-IS-and-SMC-posteriors" title="Link to this heading"></a></h3>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">kl</span> <span class="o">=</span> <span class="n">dist_is</span><span class="o">.</span><span class="n">kl_divergence</span><span class="p">(</span><span class="n">dist_smc</span><span class="p">)</span>
@@ -300,6 +369,15 @@
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+  KL(IS || SMC)  $\mu$ = 0.7429
+  KL(IS || SMC)  $\sigma$ = 0.6496
+</pre></div></div>
+</div>
 </section>
 </section>
 <hr class="docutils" />
@@ -307,8 +385,8 @@
 <h2>3 <code class="docutils literal notranslate"><span class="pre">GriddedProbabilities</span></code><a class="headerlink" href="#3-GriddedProbabilities" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">GriddedProbabilities</span></code> holds a posterior evaluated on a regular parameter grid. Credible intervals are computed directly from 1-D marginals — efficient for large grids.</p>
 <p>The optional <code class="docutils literal notranslate"><span class="pre">true_ranges</span></code> parameter enables <code class="docutils literal notranslate"><span class="pre">score()</span></code>, which measures how much posterior mass falls inside a rectangular truth region (useful for challenge-style scoring).</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Build a 2-D log-posterior grid for GaussianSignal</span>
@@ -336,8 +414,17 @@
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Grid shape: (80, 80)
+n_params  : 2
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Grid posterior metrics&#39;</span><span class="p">)</span>
@@ -349,8 +436,21 @@
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Grid posterior metrics
+  z-scores      : [1.282 0.813]
+  bias          : [-0.136 -0.07 ]
+  PIT           : [0.921 0.828]
+  Mahalanobis D : 1.517
+  score         : 0.9613
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Visualise the 2-D grid with marginals</span>
@@ -393,6 +493,13 @@
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_16_0.png" src="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_16_0.png" />
+</div>
+</div>
 </section>
 <hr class="docutils" />
 <section id="4-PosteriorComparison-—-side-by-side-diagnostics">
@@ -405,7 +512,7 @@
 <li><p><strong>Grid</strong> — full 2-D grid posterior evaluated analytically</p></li>
 </ol>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># marker=True (default) → auto-assigns from the marker cycle</span>
@@ -420,8 +527,8 @@
 <section id="4a-Boxplot-—-box-=-68%-CI,-whiskers-=-95%-CI,-marker-=-median">
 <h3>4a Boxplot — box = 68% CI, whiskers = 95% CI, marker = median<a class="headerlink" href="#4a-Boxplot-—-box-=-68%-CI,-whiskers-=-95%-CI,-marker-=-median" title="Link to this heading"></a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">marker=True</span></code> (default) auto-assigns a symbol from the cycle. Pass <code class="docutils literal notranslate"><span class="pre">marker=None</span></code> to suppress it.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span> <span class="o">=</span> <span class="n">comp</span><span class="o">.</span><span class="n">plot_boxplot</span><span class="p">(</span><span class="n">levels</span><span class="o">=</span><span class="p">(</span><span class="mi">68</span><span class="p">,</span> <span class="mi">95</span><span class="p">))</span>
@@ -430,17 +537,31 @@
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_20_0.png" src="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_20_0.png" />
+</div>
+</div>
 </section>
 <section id="4b-Forest-plot-—-errorbar-style">
 <h3>4b Forest plot — errorbar style<a class="headerlink" href="#4b-Forest-plot-—-errorbar-style" title="Link to this heading"></a></h3>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span> <span class="o">=</span> <span class="n">comp</span><span class="o">.</span><span class="n">plot_forest</span><span class="p">(</span><span class="n">levels</span><span class="o">=</span><span class="p">(</span><span class="mi">68</span><span class="p">,</span> <span class="mi">95</span><span class="p">))</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s1">&#39;Forest plot — auto markers from cycle (default)&#39;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">1.02</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_22_0.png" src="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_22_0.png" />
 </div>
 </div>
 </section>
@@ -465,8 +586,8 @@
 </tbody>
 </table>
 <p><code class="docutils literal notranslate"><span class="pre">markersize</span></code> and <code class="docutils literal notranslate"><span class="pre">linewidth</span></code> per entry override the method-level defaults.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">comp_styled</span> <span class="o">=</span> <span class="n">PosteriorComparison</span><span class="p">()</span>
@@ -484,12 +605,26 @@
 </pre></div>
 </div>
 </div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_24_0.png" src="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_24_0.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_24_1.png" src="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_24_1.png" />
+</div>
+</div>
 </section>
 <section id="4d-Legend-panel">
 <h3>4d Legend panel<a class="headerlink" href="#4d-Legend-panel" title="Link to this heading"></a></h3>
 <p>Entries with <code class="docutils literal notranslate"><span class="pre">marker=None</span></code> appear as a solid coloured line; others show their marker symbol.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span> <span class="o">=</span> <span class="n">comp_styled</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">ncol</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
@@ -497,11 +632,18 @@
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_26_0.png" src="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_26_0.png" />
+</div>
+</div>
 </section>
 <section id="4e-Metrics-table">
 <h3>4e Metrics table<a class="headerlink" href="#4e-Metrics-table" title="Link to this heading"></a></h3>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">df</span> <span class="o">=</span> <span class="n">comp</span><span class="o">.</span><span class="n">metrics_table</span><span class="p">(</span><span class="n">sort_by</span><span class="o">=</span><span class="s1">&#39;mahalanobis&#39;</span><span class="p">)</span>
@@ -509,16 +651,34 @@
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+label  mahalanobis   z_1   z_2  score
+ Grid        1.517 1.282 0.813 0.9613
+   IS        1.552 1.481 0.841    NaN
+  SMC        1.762 1.444 0.753    NaN
+</pre></div></div>
+</div>
 </section>
 <section id="4f-Auto-colored-legend-(when-no-markers-are-set)">
 <h3>4f Auto-colored legend (when no markers are set)<a class="headerlink" href="#4f-Auto-colored-legend-(when-no-markers-are-set)" title="Link to this heading"></a></h3>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span> <span class="o">=</span> <span class="n">comp</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">ncol</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_30_0.png" src="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_30_0.png" />
 </div>
 </div>
 </section>
@@ -527,8 +687,8 @@
 <section id="5-Comparing-many-posteriors-—-NoisyLine-with-varying-noise">
 <h2>5 Comparing many posteriors — NoisyLine with varying noise<a class="headerlink" href="#5-Comparing-many-posteriors-—-NoisyLine-with-varying-noise" title="Link to this heading"></a></h2>
 <p>A more realistic use-case: we have one true model but five different IS posteriors obtained with different proposal widths. The boxplot should show how uncertainty grows as the proposal degrades.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">comp_nl</span> <span class="o">=</span> <span class="n">PosteriorComparison</span><span class="p">()</span>
@@ -556,21 +716,41 @@
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_32_0.png" src="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_32_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">comp_nl</span><span class="o">.</span><span class="n">metrics_table</span><span class="p">()</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+    label  mahalanobis          z_1          z_2
+noise=0.8 4.060000e-01 2.110000e-01 3.860000e-01
+noise=3.0 4.320000e-01 2.760000e-01 4.080000e-01
+noise=1.5 2.173000e+00 5.020000e-01 5.500000e-01
+noise=0.2 1.035941e+14 1.025299e+14 1.447761e+13
+noise=0.4          NaN 2.508000e+00 5.160000e-01
+</pre></div></div>
+</div>
 </section>
 <hr class="docutils" />
 <section id="6-plot_triangle-—-corner-/-triangle-plot">
 <h2>6 <code class="docutils literal notranslate"><span class="pre">plot_triangle</span></code> — corner / triangle plot<a class="headerlink" href="#6-plot_triangle-—-corner-/-triangle-plot" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">plot_triangle</span></code> is a standalone function that accepts raw samples and forwards to the chosen backend (<code class="docutils literal notranslate"><span class="pre">'corner'</span></code>, <code class="docutils literal notranslate"><span class="pre">'getdist'</span></code>, <code class="docutils literal notranslate"><span class="pre">'chainconsumer'</span></code>). It is also accessible directly from any <code class="docutils literal notranslate"><span class="pre">DistributionDiagnostic</span></code> via <code class="docutils literal notranslate"><span class="pre">.plot_triangle()</span></code>.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Standalone function — corner backend</span>
@@ -594,8 +774,15 @@
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_35_0.png" src="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_35_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Via the object method — same result</span>
@@ -615,8 +802,15 @@
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_36_0.png" src="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_36_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># getdist backend</span>
@@ -635,13 +829,36 @@
 </pre></div>
 </div>
 </div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+WARNING:root:outlier fraction 0.02265475430759413
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Removed no burn in
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_37_2.png" src="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_37_2.png" />
+</div>
+</div>
 </section>
 <hr class="docutils" />
 <section id="7-print_chain_stats-—-standalone-summary">
 <h2>7 <code class="docutils literal notranslate"><span class="pre">print_chain_stats</span></code> — standalone summary<a class="headerlink" href="#7-print_chain_stats-—-standalone-summary" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">print_chain_stats</span></code> can be called with raw samples (it computes everything internally) or with precomputed means, sigmas, and CIs.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># From raw weighted samples</span>
@@ -650,8 +867,24 @@
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+── From samples ─────────────────────────────
+Parameter summary
+==================================================
+  \mu:  mean = 1.3584,  std = 0.0952
+    68% CI: [1.2735, 1.4594]
+    95% CI: [1.1850, 1.5386]
+  \sigma:  mean = 0.7453,  std = 0.0648
+    68% CI: [0.6728, 0.8134]
+    95% CI: [0.6025, 0.8785]
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># From precomputed statistics</span>
@@ -664,14 +897,30 @@
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+── From precomputed means / sigmas / CIs ────
+Parameter summary
+==================================================
+  \mu:  mean = 1.3584,  std = 0.0956
+    68% CI: [1.2735, 1.4594]
+    95% CI: [1.1850, 1.5386]
+  \sigma:  mean = 0.7453,  std = 0.0651
+    68% CI: [0.6728, 0.8134]
+    95% CI: [0.6025, 0.8785]
+</pre></div></div>
+</div>
 </section>
 <hr class="docutils" />
 <section id="8-score()-on-GriddedProbabilities">
 <h2>8 <code class="docutils literal notranslate"><span class="pre">score()</span></code> on <code class="docutils literal notranslate"><span class="pre">GriddedProbabilities</span></code><a class="headerlink" href="#8-score()-on-GriddedProbabilities" title="Link to this heading"></a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">score()</span></code> method integrates posterior mass inside a rectangular parameter region defined by <code class="docutils literal notranslate"><span class="pre">true_ranges</span></code>. It is used e.g. in the SDC3b challenge to rank inference methods.</p>
 <p>Here we vary the size of the truth cube and observe how the score changes.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">half_widths</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">]</span>
@@ -701,13 +950,32 @@
 </pre></div>
 </div>
 </div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+  half_width=0.05  score=0.0718
+  half_width=0.10  score=0.2701
+  half_width=0.20  score=0.7891
+  half_width=0.40  score=0.9979
+  half_width=0.60  score=1.0000
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_42_1.png" src="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_42_1.png" />
+</div>
+</div>
 </section>
 <hr class="docutils" />
 <section id="9-Mixing-SampledDistribution-and-GriddedProbabilities-in-one-comparison">
 <h2>9 Mixing <code class="docutils literal notranslate"><span class="pre">SampledDistribution</span></code> and <code class="docutils literal notranslate"><span class="pre">GriddedProbabilities</span></code> in one comparison<a class="headerlink" href="#9-Mixing-SampledDistribution-and-GriddedProbabilities-in-one-comparison" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">PosteriorComparison</span></code> works with any <code class="docutils literal notranslate"><span class="pre">DistributionDiagnostic</span></code> subclass, so you can put grid-based and sample-based posteriors side by side directly.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">comp_mixed</span> <span class="o">=</span> <span class="n">PosteriorComparison</span><span class="p">()</span>
@@ -723,6 +991,25 @@
 <span class="nb">print</span><span class="p">(</span><span class="n">comp_mixed</span><span class="o">.</span><span class="n">metrics_table</span><span class="p">()</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
 </pre></div>
 </div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_44_0.png" src="../_build/html/.doctrees/nbsphinx/examples_plotting_diagnostics_tutorial_44_0.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+      label  mahalanobis   z_1   z_2  score
+       Grid        1.517 1.282 0.813 0.9613
+ IS samples        1.552 1.481 0.841    NaN
+SMC samples        1.762 1.444 0.753    NaN
+</pre></div></div>
 </div>
 </section>
 <hr class="docutils" />
