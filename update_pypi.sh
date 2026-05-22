@@ -5,9 +5,9 @@
 #   ./update_pypi.sh
 #
 # Before running:
-#   1. Merge the release PR into main
+#   1. Merge the release PR into master
 #   2. Update the version in pyproject.toml
-#   3. Move/create the git tag on main (see step 5 below)
+#   3. Move/create the git tag on master (see step 5 below)
 #
 # Requires: build, twine  (pip install build twine)
 # PyPI credentials: use __token__ as username and your API token as password
@@ -17,8 +17,8 @@ set -euo pipefail
 VERSION=$(python -c "import tomllib; f=open('pyproject.toml','rb'); d=tomllib.load(f); print(d['project']['version'])")
 echo "Releasing version: $VERSION"
 
-# 1. Make sure we are on main and up to date
-git checkout main
+# 1. Make sure we are on master and up to date
+git checkout master
 git pull
 
 # 2. Clean previous builds
@@ -32,7 +32,7 @@ python -m build
 pip install twine
 twine upload dist/*
 
-# 5. Re-tag current main commit and push
+# 5. Re-tag current master commit and push
 git tag -f "v${VERSION}"
 git push origin "v${VERSION}" --force
 
