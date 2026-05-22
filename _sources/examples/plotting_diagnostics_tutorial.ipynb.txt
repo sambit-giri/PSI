@@ -25,9 +25,9 @@
     "| Method | What it measures |\n",
     "|---|---|\n",
     "| `credible_intervals(levels)` | Equal-tailed marginal CIs from the empirical CDF |\n",
-    "| `z_scores()` | Per-parameter `|mean − truth| / sigma` |\n",
-    "| `bias()` | Per-parameter `median − truth` |\n",
-    "| `pit()` | Probability Integral Transform — `CDF(truth)` per parameter |\n",
+    "| `z_scores()` | Per-parameter `|mean \u2212 truth| / sigma` |\n",
+    "| `bias()` | Per-parameter `median \u2212 truth` |\n",
+    "| `pit()` | Probability Integral Transform \u2014 `CDF(truth)` per parameter |\n",
     "| `mahalanobis()` | Multivariate distance from posterior mean to truth |\n",
     "| `kl_divergence(other)` | Per-parameter KL divergence between two posteriors |"
    ]
@@ -89,7 +89,7 @@
     }
    ],
    "source": [
-    "# ── GaussianSignal setup ──────────────────────────────────────────────────────\n",
+    "# \u2500\u2500 GaussianSignal setup \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n",
     "gs = GaussianSignal(N=60)\n",
     "theta_true_gs = np.array([1.5, 0.8])   # [mean, sigma]\n",
     "x_obs = gs.simulate(theta_true_gs)\n",
@@ -97,7 +97,7 @@
     "prior_gs = UniformPrior([(0.0, 3.0), (0.2, 2.0)])\n",
     "log_post_gs = lambda t: gs.log_prob(t, x_obs) + prior_gs.log_prob(t)\n",
     "\n",
-    "# IS posterior (tight proposal → good ESS)\n",
+    "# IS posterior (tight proposal \u2192 good ESS)\n",
     "prop_is = prior_gs.sample(8000)\n",
     "s_is, w_is = importance_sampling(log_post_gs, prop_is)\n",
     "\n",
@@ -130,7 +130,7 @@
     }
    ],
    "source": [
-    "# ── NoisyLine setup ───────────────────────────────────────────────────────────\n",
+    "# \u2500\u2500 NoisyLine setup \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n",
     "nl = NoisyLine(Nx=50, noise_sigma=0.4)\n",
     "theta_true_nl = np.array([-0.8, 5.0])   # [slope, intercept]\n",
     "y_obs = nl.simulate(theta_true_nl)\n",
@@ -193,7 +193,7 @@
    "id": "cell-7",
    "metadata": {},
    "source": [
-    "### 2a  `print_stats` — mean, std, and credible intervals"
+    "### 2a  `print_stats` \u2014 mean, std, and credible intervals"
    ]
   },
   {
@@ -206,7 +206,7 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "── IS posterior ──────────────────────────────\n",
+      "\u2500\u2500 IS posterior \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n",
       "Parameter summary\n",
       "==================================================\n",
       "  \\mu:  mean = 1.3584,  std = 0.0956\n",
@@ -216,7 +216,7 @@
       "    68% CI: [0.6728, 0.8134]\n",
       "    95% CI: [0.6025, 0.8785]\n",
       "\n",
-      "── SMC posterior ─────────────────────────────\n",
+      "\u2500\u2500 SMC posterior \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n",
       "Parameter summary\n",
       "==================================================\n",
       "  \\mu:  mean = 1.3736,  std = 0.0876\n",
@@ -229,11 +229,11 @@
     }
    ],
    "source": [
-    "print('── IS posterior ──────────────────────────────')\n",
+    "print('\u2500\u2500 IS posterior \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500')\n",
     "dist_is.print_stats(levels=(68, 95))\n",
     "\n",
     "print()\n",
-    "print('── SMC posterior ─────────────────────────────')\n",
+    "print('\u2500\u2500 SMC posterior \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500')\n",
     "dist_smc.print_stats(levels=(68, 95))"
    ]
   },
@@ -323,7 +323,7 @@
     "## 3  `GriddedProbabilities`\n",
     "\n",
     "`GriddedProbabilities` holds a posterior evaluated on a regular parameter grid.\n",
-    "Credible intervals are computed directly from 1-D marginals — efficient for large grids.\n",
+    "Credible intervals are computed directly from 1-D marginals \u2014 efficient for large grids.\n",
     "\n",
     "The optional `true_ranges` parameter enables `score()`, which measures how much posterior\n",
     "mass falls inside a rectangular truth region (useful for challenge-style scoring)."
@@ -449,7 +449,7 @@
     "axes[2].set(xlabel=r'$\\sigma$', title=r'Marginal $\\sigma$')\n",
     "axes[2].legend(fontsize=8)\n",
     "\n",
-    "fig.suptitle('GriddedProbabilities — GaussianSignal posterior', y=1.02)\n",
+    "fig.suptitle('GriddedProbabilities \u2014 GaussianSignal posterior', y=1.02)\n",
     "plt.tight_layout()\n",
     "plt.show()"
    ]
@@ -460,15 +460,15 @@
    "metadata": {},
    "source": [
     "---\n",
-    "## 4  `PosteriorComparison` — side-by-side diagnostics\n",
+    "## 4  `PosteriorComparison` \u2014 side-by-side diagnostics\n",
     "\n",
     "`PosteriorComparison` accepts any mix of `SampledDistribution` and `GriddedProbabilities`\n",
     "objects and produces aligned comparison plots.\n",
     "\n",
     "We compare three posteriors for the same `GaussianSignal` experiment:\n",
-    "1. **IS** — importance sampling with tight proposal\n",
-    "2. **SMC** — sequential Monte Carlo from a broad prior\n",
-    "3. **Grid** — full 2-D grid posterior evaluated analytically"
+    "1. **IS** \u2014 importance sampling with tight proposal\n",
+    "2. **SMC** \u2014 sequential Monte Carlo from a broad prior\n",
+    "3. **Grid** \u2014 full 2-D grid posterior evaluated analytically"
    ]
   },
   {
@@ -478,8 +478,8 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "# marker=True (default) → auto-assigns from the marker cycle\n",
-    "# color=None → auto-assigns from tab20 colour cycle\n",
+    "# marker=True (default) \u2192 auto-assigns from the marker cycle\n",
+    "# color=None \u2192 auto-assigns from tab20 colour cycle\n",
     "comp = PosteriorComparison()\n",
     "comp.add(dist_is,   label='IS',   color='C0')\n",
     "comp.add(dist_smc,  label='SMC',  color='C2')\n",
@@ -491,7 +491,7 @@
    "id": "cell-19",
    "metadata": {},
    "source": [
-    "### 4a  Boxplot — box = 68% CI, whiskers = 95% CI, marker = median\n",
+    "### 4a  Boxplot \u2014 box = 68% CI, whiskers = 95% CI, marker = median\n",
     "\n",
     "`marker=True` (default) auto-assigns a symbol from the cycle. Pass `marker=None` to suppress it."
    ]
@@ -515,7 +515,7 @@
    ],
    "source": [
     "fig = comp.plot_boxplot(levels=(68, 95))\n",
-    "plt.suptitle('Boxplot — auto markers from cycle (default)', y=1.02)\n",
+    "plt.suptitle('Boxplot \u2014 auto markers from cycle (default)', y=1.02)\n",
     "plt.show()"
    ]
   },
@@ -524,7 +524,7 @@
    "id": "cell-21",
    "metadata": {},
    "source": [
-    "### 4b  Forest plot — errorbar style"
+    "### 4b  Forest plot \u2014 errorbar style"
    ]
   },
   {
@@ -546,7 +546,7 @@
    ],
    "source": [
     "fig = comp.plot_forest(levels=(68, 95))\n",
-    "plt.suptitle('Forest plot — auto markers from cycle (default)', y=1.02)\n",
+    "plt.suptitle('Forest plot \u2014 auto markers from cycle (default)', y=1.02)\n",
     "plt.show()"
    ]
   },
@@ -561,7 +561,7 @@
     "|---|---|\n",
     "| `True` (default) | Auto-assign from marker cycle |\n",
     "| `None` | No marker drawn (matplotlib convention) |\n",
-    "| `'o'`, `'s'`, `'^'`, … | Use that specific symbol |\n",
+    "| `'o'`, `'s'`, `'^'`, \u2026 | Use that specific symbol |\n",
     "\n",
     "`markersize` and `linewidth` per entry override the method-level defaults."
    ]
@@ -595,16 +595,16 @@
    ],
    "source": [
     "comp_styled = PosteriorComparison()\n",
-    "comp_styled.add(dist_is,   label='IS (auto marker)',  color='C0')                          # marker=True → cycle\n",
+    "comp_styled.add(dist_is,   label='IS (auto marker)',  color='C0')                          # marker=True \u2192 cycle\n",
     "comp_styled.add(dist_smc,  label='SMC (square, lw3)', color='C2', marker='s', linewidth=3)  # explicit marker\n",
     "comp_styled.add(dist_grid, label='Grid (no marker)',  color='C3', marker=None)              # suppress marker\n",
     "\n",
     "fig = comp_styled.plot_boxplot(levels=(68, 95))\n",
-    "plt.suptitle('Boxplot — auto / explicit / no marker', y=1.02)\n",
+    "plt.suptitle('Boxplot \u2014 auto / explicit / no marker', y=1.02)\n",
     "plt.show()\n",
     "\n",
     "fig = comp_styled.plot_forest(levels=(68, 95))\n",
-    "plt.suptitle('Forest plot — auto / explicit / no marker', y=1.02)\n",
+    "plt.suptitle('Forest plot \u2014 auto / explicit / no marker', y=1.02)\n",
     "plt.show()"
    ]
   },
@@ -706,7 +706,7 @@
    "metadata": {},
    "source": [
     "---\n",
-    "## 5  Comparing many posteriors — NoisyLine with varying noise\n",
+    "## 5  Comparing many posteriors \u2014 NoisyLine with varying noise\n",
     "\n",
     "A more realistic use-case: we have one true model but five different IS posteriors\n",
     "obtained with different proposal widths.  The boxplot should show how uncertainty\n",
@@ -784,7 +784,7 @@
    "metadata": {},
    "source": [
     "---\n",
-    "## 6  `plot_triangle` — corner / triangle plot\n",
+    "## 6  `plot_triangle` \u2014 corner / triangle plot\n",
     "\n",
     "`plot_triangle` is a standalone function that accepts raw samples and forwards to\n",
     "the chosen backend (`'corner'`, `'getdist'`, `'chainconsumer'`).  It is also\n",
@@ -809,7 +809,7 @@
     }
    ],
    "source": [
-    "# Standalone function — corner backend\n",
+    "# Standalone function \u2014 corner backend\n",
     "try:\n",
     "    fig = plot_triangle(\n",
     "        s_is,\n",
@@ -823,10 +823,10 @@
     "        levels=(0.68, 0.95),\n",
     "        color='C0',\n",
     "    )\n",
-    "    plt.suptitle('plot_triangle (corner engine) — IS posterior', y=1.02)\n",
+    "    plt.suptitle('plot_triangle (corner engine) \u2014 IS posterior', y=1.02)\n",
     "    plt.show()\n",
     "except ImportError:\n",
-    "    print('corner not installed — skipping')"
+    "    print('corner not installed \u2014 skipping')"
    ]
   },
   {
@@ -847,7 +847,7 @@
     }
    ],
    "source": [
-    "# Via the object method — same result\n",
+    "# Via the object method \u2014 same result\n",
     "try:\n",
     "    fig = dist_smc.plot_triangle(\n",
     "        engine='corner',\n",
@@ -857,10 +857,10 @@
     "        levels=(0.68, 0.95),\n",
     "        color='C2',\n",
     "    )\n",
-    "    plt.suptitle('SampledDistribution.plot_triangle — SMC posterior', y=1.02)\n",
+    "    plt.suptitle('SampledDistribution.plot_triangle \u2014 SMC posterior', y=1.02)\n",
     "    plt.show()\n",
     "except ImportError:\n",
-    "    print('corner not installed — skipping')"
+    "    print('corner not installed \u2014 skipping')"
    ]
   },
   {
@@ -904,10 +904,10 @@
     "        true_values=theta_true_gs,\n",
     "        engine='getdist',\n",
     "    )\n",
-    "    plt.suptitle('plot_triangle (getdist engine) — IS posterior', y=1.02)\n",
+    "    plt.suptitle('plot_triangle (getdist engine) \u2014 IS posterior', y=1.02)\n",
     "    plt.show()\n",
     "except ImportError:\n",
-    "    print('getdist not installed — skipping')"
+    "    print('getdist not installed \u2014 skipping')"
    ]
   },
   {
@@ -916,7 +916,7 @@
    "metadata": {},
    "source": [
     "---\n",
-    "## 7  `print_chain_stats` — standalone summary\n",
+    "## 7  `print_chain_stats` \u2014 standalone summary\n",
     "\n",
     "`print_chain_stats` can be called with raw samples (it computes everything internally)\n",
     "or with precomputed means, sigmas, and CIs."
@@ -932,7 +932,7 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "── From samples ─────────────────────────────\n",
+      "\u2500\u2500 From samples \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n",
       "Parameter summary\n",
       "==================================================\n",
       "  \\mu:  mean = 1.3584,  std = 0.0952\n",
@@ -946,7 +946,7 @@
    ],
    "source": [
     "# From raw weighted samples\n",
-    "print('── From samples ─────────────────────────────')\n",
+    "print('\u2500\u2500 From samples \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500')\n",
     "print_chain_stats(s_is, weights=w_is, labels=[r'\\mu', r'\\sigma'], levels=(68, 95))"
    ]
   },
@@ -960,7 +960,7 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "── From precomputed means / sigmas / CIs ────\n",
+      "\u2500\u2500 From precomputed means / sigmas / CIs \u2500\u2500\u2500\u2500\n",
       "Parameter summary\n",
       "==================================================\n",
       "  \\mu:  mean = 1.3584,  std = 0.0956\n",
@@ -977,7 +977,7 @@
     "means_gs, _, sigmas_gs, *_ = dist_is._weighted_stats()\n",
     "cis_gs = dist_is.credible_intervals(levels=(68, 95))\n",
     "\n",
-    "print('── From precomputed means / sigmas / CIs ────')\n",
+    "print('\u2500\u2500 From precomputed means / sigmas / CIs \u2500\u2500\u2500\u2500')\n",
     "print_chain_stats(means_gs, sigmas=sigmas_gs, cis=cis_gs,\n",
     "                  labels=[r'\\mu', r'\\sigma'], levels=(68, 95))"
    ]
@@ -1098,7 +1098,7 @@
     "comp_mixed.add(dist_grid, label='Grid',        color='C3', marker='^', markersize=9)\n",
     "\n",
     "fig = comp_mixed.plot_boxplot(levels=(68, 95), figsize=(9, 3.5))\n",
-    "plt.suptitle('Mixed posteriors: samples vs grid — GaussianSignal', y=1.02)\n",
+    "plt.suptitle('Mixed posteriors: samples vs grid \u2014 GaussianSignal', y=1.02)\n",
     "plt.show()\n",
     "\n",
     "print()\n",
@@ -1107,32 +1107,97 @@
   },
   {
    "cell_type": "markdown",
+   "metadata": {},
+   "source": "---\n## 10  Derived (pseudo) parameters \u2014 `add_derived`\n\n`add_derived(func, label, true_value)` registers a parameter computed from\nthe original samples.  After that it appears everywhere: contour plots,\ntriangle plots, and metric methods.\n\nA cosmology-style example: $S_8 = \\sigma_8 \\sqrt{\\Omega_m / 0.3}$.\nHere we use the two GaussianSignal parameters $(\\mu, \\sigma)$ and define\na pseudo-parameter $P = \\mu \\cdot \\sqrt{|\\sigma|}$ to mimic the idea."
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": "from psiphy.plotting.diagnostics import SampledDistribution\n\n# Re-use the IS samples from Section 1\n# true_values = [mu_true, sigma_true] = theta\ndist_derived = SampledDistribution(\n    s_is,\n    weights=w_is,\n    true_values=theta,\n    labels=[r'\\mu', r'\\sigma'],\n)\n\n# Register a derived parameter:  P = mu * sqrt(|sigma|)\ntrue_P = float(theta[0] * theta[1] ** 0.5)\ndist_derived.add_derived(\n    lambda s: s[:, 0] * np.abs(s[:, 1]) ** 0.5,\n    label=r'P',\n    true_value=true_P,\n)\n\nprint('Full labels  :', dist_derived._full_labels())\nprint('Full truths  :', dist_derived._full_true_values())\n\nfull_s, full_w = dist_derived.get_full_samples()\nprint('Sample shape :', full_s.shape)   # (N, 3)  \u2014 2 original + 1 derived"
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": "### 10a  Credible intervals on the derived parameter"
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": "cis = dist_derived.credible_intervals()        # original params only\ncis_full = []\n# credible_intervals() operates on get_samples(); for derived params, use\n# the full sample column directly via plot_contour_1d or a manual CI:\nfrom psiphy.plotting.diagnostics import SampledDistribution as SD\n# Wrap derived column as its own 1-D posterior to get CI numbers:\nderived_col = full_s[:, 2]\ndist_P = SD(derived_col, weights=full_w, true_values=[true_P], labels=[r'P'])\nci_P = dist_P.credible_intervals()[0]\nprint(f'P  median={ci_P[\"median\"]:.4f}'\n      f'  68% [{ci_P[\"lo68\"]:.4f}, {ci_P[\"hi68\"]:.4f}]'\n      f'  true={true_P:.4f}')"
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": "---\n## 11  Single-panel contour plots\n\n`plot_contour_1d(param)` and `plot_contour_2d(param1, param2)` draw\nindividual marginal panels using a KDE.\n\n* `param` can be an **integer index** or a **label string** (including\n  derived parameters).\n* Both methods accept an `ax=` argument for embedding into existing figures.\n* `PosteriorComparison` provides the same two methods to **overlay** all\n  registered posteriors on a shared axes."
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": "# \u2500\u2500 11a  1-D marginal of an original parameter \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nfig = dist_derived.plot_contour_1d(param=0)       # mu\nplt.title(r'1-D marginal: $\\mu$')\nplt.show()"
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": "# \u2500\u2500 11b  1-D marginal of the derived parameter \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nfig = dist_derived.plot_contour_1d(param=r'P')\nplt.title(r'1-D marginal: derived $P = \\mu\\,|\\sigma|^{1/2}$')\nplt.show()"
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": "# \u2500\u2500 11c  2-D joint contour (original params) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nfig = dist_derived.plot_contour_2d(param1=0, param2=1)\nplt.title(r'Joint: $\\mu$ vs $\\sigma$')\nplt.show()"
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": "# \u2500\u2500 11d  2-D joint contour (original vs derived) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nfig = dist_derived.plot_contour_2d(param1=0, param2=r'P')\nplt.title(r'Joint: $\\mu$ vs derived $P$')\nplt.show()"
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": "### 11e  Embedding into a multi-panel figure"
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": "fig, axes = plt.subplots(1, 2, figsize=(10, 4))\n\ndist_derived.plot_contour_1d(param=0, ax=axes[0], color='C0')\naxes[0].set_title(r'$\\mu$ marginal')\n\ndist_derived.plot_contour_1d(param=r'P', ax=axes[1], color='C1')\naxes[1].set_title(r'Derived $P$ marginal')\n\nfig.tight_layout()\nplt.show()"
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": "### 11f  `PosteriorComparison` overlay"
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": "# Build a comparison: IS vs SMC, both with the derived parameter\ndist_smc_d = SampledDistribution(\n    s_smc, true_values=theta, labels=[r'\\mu', r'\\sigma'],\n)\ndist_smc_d.add_derived(\n    lambda s: s[:, 0] * np.abs(s[:, 1]) ** 0.5,\n    label=r'P', true_value=true_P,\n)\n\nfrom psiphy.plotting.diagnostics import PosteriorComparison\ncomp_d = PosteriorComparison()\ncomp_d.add(dist_derived, label='IS',  color='C0')\ncomp_d.add(dist_smc_d,   label='SMC', color='C2')\n\n# 1-D overlay\nfig = comp_d.plot_contour_1d(param=r'P', fill=True, alpha=0.2)\nplt.title(r'Overlay: derived $P$ \u2014 IS vs SMC')\nplt.show()"
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": "# 2-D overlay (filled=False keeps colours readable)\nfig = comp_d.plot_contour_2d(param1=0, param2=r'P', filled=False)\nplt.title(r'Overlay: $\\mu$ vs $P$ \u2014 IS vs SMC')\nplt.show()"
+  },
+  {
+   "cell_type": "markdown",
    "id": "cell-41",
    "metadata": {},
-   "source": [
-    "---\n",
-    "## Summary\n",
-    "\n",
-    "| What | How |\n",
-    "|---|---|\n",
-    "| Wrap IS/MCMC samples | `SampledDistribution(samples, weights, true_values, labels)` |\n",
-    "| Wrap a grid posterior | `GriddedProbabilities(grid, coords, true_values, labels, true_ranges)` |\n",
-    "| Metrics | `.z_scores()`, `.bias()`, `.pit()`, `.mahalanobis()`, `.kl_divergence(other)` |\n",
-    "| Per-parameter CIs | `.credible_intervals(levels=(68, 95))` |\n",
-    "| Print summary | `.print_stats()` or `print_chain_stats(samples)` |\n",
-    "| Triangle plot | `.plot_triangle(engine='corner')` or standalone `plot_triangle(...)` |\n",
-    "| Compare posteriors | `PosteriorComparison` → `.plot_boxplot()`, `.plot_forest()`, `.metrics_table()` |\n",
-    "| Posterior mass in truth cube | `GriddedProbabilities(..., true_ranges=...).score()` |\n",
-    "\n",
-    "### Styling controls for `PosteriorComparison.add()`\n",
-    "\n",
-    "| Argument | Default | Effect |\n",
-    "|---|---|---|\n",
-    "| `color` | `None` → tab20 cycle | Bar / box / line colour |\n",
-    "| `marker` | `True` → auto from marker cycle | `None` = no marker (matplotlib convention); any string = that symbol |\n",
-    "| `markersize` | `None` → method default (8) | Per-entry override |\n",
-    "| `linewidth` | `None` → method default (2) | Per-entry override |"
-   ]
+   "source": "---\n## Summary\n\n| What | How |\n|---|---|\n| Wrap IS/MCMC samples | `SampledDistribution(samples, weights, true_values, labels)` |\n| Wrap a grid posterior | `GriddedProbabilities(grid, coords, true_values, labels, true_ranges)` |\n| Metrics | `.z_scores()`, `.bias()`, `.pit()`, `.mahalanobis()`, `.kl_divergence(other)` |\n| Per-parameter CIs | `.credible_intervals(levels=(68, 95))` |\n| Print summary | `.print_stats()` or `print_chain_stats(samples)` |\n| Triangle plot | `.plot_triangle(engine='corner')` or standalone `plot_triangle(...)` |\n| Compare posteriors | `PosteriorComparison` \u2192 `.plot_boxplot()`, `.plot_forest()`, `.metrics_table()` |\n| Posterior mass in truth cube | `GriddedProbabilities(..., true_ranges=...).score()` |\n\n### Styling controls for `PosteriorComparison.add()`\n\n| Argument | Default | Effect |\n|---|---|---|\n| `color` | `None` \u2192 tab20 cycle | Bar / box / line colour |\n| `marker` | `True` \u2192 auto from marker cycle | `None` = no marker (matplotlib convention); any string = that symbol |\n| `markersize` | `None` \u2192 method default (8) | Per-entry override |\n| `linewidth` | `None` \u2192 method default (2) | Per-entry override |\n| Single-panel KDE | `dist.plot_contour_1d(param)`, `dist.plot_contour_2d(p1, p2)` |\n| Overlay contours | `comp.plot_contour_1d(param)`, `comp.plot_contour_2d(p1, p2)` |\n| Derived parameters | `dist.add_derived(func, label, true_value)` |\n"
   }
  ],
  "metadata": {

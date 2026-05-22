@@ -1013,6 +1013,178 @@ SMC samples        1.762 1.444 0.753    NaN
 </div>
 </section>
 <hr class="docutils" />
+<section id="10-Derived-(pseudo)-parameters-—-add_derived">
+<h2>10 Derived (pseudo) parameters — <code class="docutils literal notranslate"><span class="pre">add_derived</span></code><a class="headerlink" href="#10-Derived-(pseudo)-parameters-—-add_derived" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">add_derived(func,</span> <span class="pre">label,</span> <span class="pre">true_value)</span></code> registers a parameter computed from the original samples. After that it appears everywhere: contour plots, triangle plots, and metric methods.</p>
+<p>A cosmology-style example: <span class="math notranslate nohighlight">\(S_8 = \sigma_8 \sqrt{\Omega_m / 0.3}\)</span>. Here we use the two GaussianSignal parameters <span class="math notranslate nohighlight">\((\mu, \sigma)\)</span> and define a pseudo-parameter <span class="math notranslate nohighlight">\(P = \mu \cdot \sqrt{|\sigma|}\)</span> to mimic the idea.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">psiphy.plotting.diagnostics</span><span class="w"> </span><span class="kn">import</span> <span class="n">SampledDistribution</span>
+
+<span class="c1"># Re-use the IS samples from Section 1</span>
+<span class="c1"># true_values = [mu_true, sigma_true] = theta</span>
+<span class="n">dist_derived</span> <span class="o">=</span> <span class="n">SampledDistribution</span><span class="p">(</span>
+    <span class="n">s_is</span><span class="p">,</span>
+    <span class="n">weights</span><span class="o">=</span><span class="n">w_is</span><span class="p">,</span>
+    <span class="n">true_values</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span>
+    <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="sa">r</span><span class="s1">&#39;\mu&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;\sigma&#39;</span><span class="p">],</span>
+<span class="p">)</span>
+
+<span class="c1"># Register a derived parameter:  P = mu * sqrt(|sigma|)</span>
+<span class="n">true_P</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">)</span>
+<span class="n">dist_derived</span><span class="o">.</span><span class="n">add_derived</span><span class="p">(</span>
+    <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">s</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;P&#39;</span><span class="p">,</span>
+    <span class="n">true_value</span><span class="o">=</span><span class="n">true_P</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Full labels  :&#39;</span><span class="p">,</span> <span class="n">dist_derived</span><span class="o">.</span><span class="n">_full_labels</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Full truths  :&#39;</span><span class="p">,</span> <span class="n">dist_derived</span><span class="o">.</span><span class="n">_full_true_values</span><span class="p">())</span>
+
+<span class="n">full_s</span><span class="p">,</span> <span class="n">full_w</span> <span class="o">=</span> <span class="n">dist_derived</span><span class="o">.</span><span class="n">get_full_samples</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Sample shape :&#39;</span><span class="p">,</span> <span class="n">full_s</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>   <span class="c1"># (N, 3)  — 2 original + 1 derived</span>
+</pre></div>
+</div>
+</div>
+<section id="10a-Credible-intervals-on-the-derived-parameter">
+<h3>10a Credible intervals on the derived parameter<a class="headerlink" href="#10a-Credible-intervals-on-the-derived-parameter" title="Link to this heading"></a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cis</span> <span class="o">=</span> <span class="n">dist_derived</span><span class="o">.</span><span class="n">credible_intervals</span><span class="p">()</span>        <span class="c1"># original params only</span>
+<span class="n">cis_full</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="c1"># credible_intervals() operates on get_samples(); for derived params, use</span>
+<span class="c1"># the full sample column directly via plot_contour_1d or a manual CI:</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">psiphy.plotting.diagnostics</span><span class="w"> </span><span class="kn">import</span> <span class="n">SampledDistribution</span> <span class="k">as</span> <span class="n">SD</span>
+<span class="c1"># Wrap derived column as its own 1-D posterior to get CI numbers:</span>
+<span class="n">derived_col</span> <span class="o">=</span> <span class="n">full_s</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span>
+<span class="n">dist_P</span> <span class="o">=</span> <span class="n">SD</span><span class="p">(</span><span class="n">derived_col</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">full_w</span><span class="p">,</span> <span class="n">true_values</span><span class="o">=</span><span class="p">[</span><span class="n">true_P</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="sa">r</span><span class="s1">&#39;P&#39;</span><span class="p">])</span>
+<span class="n">ci_P</span> <span class="o">=</span> <span class="n">dist_P</span><span class="o">.</span><span class="n">credible_intervals</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;P  median=</span><span class="si">{</span><span class="n">ci_P</span><span class="p">[</span><span class="s2">&quot;median&quot;</span><span class="p">]</span><span class="si">:</span><span class="s1">.4f</span><span class="si">}</span><span class="s1">&#39;</span>
+      <span class="sa">f</span><span class="s1">&#39;  68% [</span><span class="si">{</span><span class="n">ci_P</span><span class="p">[</span><span class="s2">&quot;lo68&quot;</span><span class="p">]</span><span class="si">:</span><span class="s1">.4f</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="n">ci_P</span><span class="p">[</span><span class="s2">&quot;hi68&quot;</span><span class="p">]</span><span class="si">:</span><span class="s1">.4f</span><span class="si">}</span><span class="s1">]&#39;</span>
+      <span class="sa">f</span><span class="s1">&#39;  true=</span><span class="si">{</span><span class="n">true_P</span><span class="si">:</span><span class="s1">.4f</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="11-Single-panel-contour-plots">
+<h2>11 Single-panel contour plots<a class="headerlink" href="#11-Single-panel-contour-plots" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">plot_contour_1d(param)</span></code> and <code class="docutils literal notranslate"><span class="pre">plot_contour_2d(param1,</span> <span class="pre">param2)</span></code> draw individual marginal panels using a KDE.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">param</span></code> can be an <strong>integer index</strong> or a <strong>label string</strong> (including derived parameters).</p></li>
+<li><p>Both methods accept an <code class="docutils literal notranslate"><span class="pre">ax=</span></code> argument for embedding into existing figures.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PosteriorComparison</span></code> provides the same two methods to <strong>overlay</strong> all registered posteriors on a shared axes.</p></li>
+</ul>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ── 11a  1-D marginal of an original parameter ────────────────────────────</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">dist_derived</span><span class="o">.</span><span class="n">plot_contour_1d</span><span class="p">(</span><span class="n">param</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>       <span class="c1"># mu</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;1-D marginal: $\mu$&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ── 11b  1-D marginal of the derived parameter ────────────────────────────</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">dist_derived</span><span class="o">.</span><span class="n">plot_contour_1d</span><span class="p">(</span><span class="n">param</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;P&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;1-D marginal: derived $P = \mu\,|\sigma|^{1/2}$&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ── 11c  2-D joint contour (original params) ──────────────────────────────</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">dist_derived</span><span class="o">.</span><span class="n">plot_contour_2d</span><span class="p">(</span><span class="n">param1</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">param2</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Joint: $\mu$ vs $\sigma$&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ── 11d  2-D joint contour (original vs derived) ─────────────────────────</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">dist_derived</span><span class="o">.</span><span class="n">plot_contour_2d</span><span class="p">(</span><span class="n">param1</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">param2</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;P&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Joint: $\mu$ vs derived $P$&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<section id="11e-Embedding-into-a-multi-panel-figure">
+<h3>11e Embedding into a multi-panel figure<a class="headerlink" href="#11e-Embedding-into-a-multi-panel-figure" title="Link to this heading"></a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+
+<span class="n">dist_derived</span><span class="o">.</span><span class="n">plot_contour_1d</span><span class="p">(</span><span class="n">param</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;C0&#39;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$\mu$ marginal&#39;</span><span class="p">)</span>
+
+<span class="n">dist_derived</span><span class="o">.</span><span class="n">plot_contour_1d</span><span class="p">(</span><span class="n">param</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;C1&#39;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Derived $P$ marginal&#39;</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="11f-PosteriorComparison-overlay">
+<h3>11f <code class="docutils literal notranslate"><span class="pre">PosteriorComparison</span></code> overlay<a class="headerlink" href="#11f-PosteriorComparison-overlay" title="Link to this heading"></a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Build a comparison: IS vs SMC, both with the derived parameter</span>
+<span class="n">dist_smc_d</span> <span class="o">=</span> <span class="n">SampledDistribution</span><span class="p">(</span>
+    <span class="n">s_smc</span><span class="p">,</span> <span class="n">true_values</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="sa">r</span><span class="s1">&#39;\mu&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;\sigma&#39;</span><span class="p">],</span>
+<span class="p">)</span>
+<span class="n">dist_smc_d</span><span class="o">.</span><span class="n">add_derived</span><span class="p">(</span>
+    <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">s</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="n">true_value</span><span class="o">=</span><span class="n">true_P</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">psiphy.plotting.diagnostics</span><span class="w"> </span><span class="kn">import</span> <span class="n">PosteriorComparison</span>
+<span class="n">comp_d</span> <span class="o">=</span> <span class="n">PosteriorComparison</span><span class="p">()</span>
+<span class="n">comp_d</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">dist_derived</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;IS&#39;</span><span class="p">,</span>  <span class="n">color</span><span class="o">=</span><span class="s1">&#39;C0&#39;</span><span class="p">)</span>
+<span class="n">comp_d</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">dist_smc_d</span><span class="p">,</span>   <span class="n">label</span><span class="o">=</span><span class="s1">&#39;SMC&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;C2&#39;</span><span class="p">)</span>
+
+<span class="c1"># 1-D overlay</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">comp_d</span><span class="o">.</span><span class="n">plot_contour_1d</span><span class="p">(</span><span class="n">param</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Overlay: derived $P$ — IS vs SMC&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># 2-D overlay (filled=False keeps colours readable)</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">comp_d</span><span class="o">.</span><span class="n">plot_contour_2d</span><span class="p">(</span><span class="n">param1</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">param2</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="n">filled</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Overlay: $\mu$ vs $P$ — IS vs SMC&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
 <section id="Summary">
 <h2>Summary<a class="headerlink" href="#Summary" title="Link to this heading"></a></h2>
 <table class="docutils align-default">
@@ -1073,6 +1245,18 @@ SMC samples        1.762 1.444 0.753    NaN
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">linewidth</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">None</span></code> → method default (2)</p></td>
 <td><p>Per-entry override</p></td>
+</tr>
+<tr class="row-even"><td><p>Single-panel KDE</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dist.plot_contour_1d(param)</span></code>, <code class="docutils literal notranslate"><span class="pre">dist.plot_contour_2d(p1,</span> <span class="pre">p2)</span></code></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>Overlay contours</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">comp.plot_contour_1d(param)</span></code>, <code class="docutils literal notranslate"><span class="pre">comp.plot_contour_2d(p1,</span> <span class="pre">p2)</span></code></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>Derived parameters</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dist.add_derived(func,</span> <span class="pre">label,</span> <span class="pre">true_value)</span></code></p></td>
+<td></td>
 </tr>
 </tbody>
 </table>
