@@ -1115,7 +1115,7 @@
    "execution_count": null,
    "metadata": {},
    "outputs": [],
-   "source": "from psiphy.plotting.diagnostics import SampledDistribution\n\n# Re-use the IS samples from Section 1\n# true_values = [mu_true, sigma_true] = theta\ndist_derived = SampledDistribution(\n    s_is,\n    weights=w_is,\n    true_values=theta,\n    labels=[r'\\mu', r'\\sigma'],\n)\n\n# Register a derived parameter:  P = mu * sqrt(|sigma|)\ntrue_P = float(theta[0] * theta[1] ** 0.5)\ndist_derived.add_derived(\n    lambda s: s[:, 0] * np.abs(s[:, 1]) ** 0.5,\n    label=r'P',\n    true_value=true_P,\n)\n\nprint('Full labels  :', dist_derived._full_labels())\nprint('Full truths  :', dist_derived._full_true_values())\n\nfull_s, full_w = dist_derived.get_full_samples()\nprint('Sample shape :', full_s.shape)   # (N, 3)  \u2014 2 original + 1 derived"
+   "source": "from psiphy.plotting.diagnostics import SampledDistribution\n\n# Re-use the IS samples from Section 1\n# true_values = [mu_true, sigma_true] = theta\ndist_derived = SampledDistribution(\n    s_is,\n    weights=w_is,\n    true_values=theta_true_gs,\n    labels=[r'\\mu', r'\\sigma'],\n)\n\n# Register a derived parameter:  P = mu * sqrt(|sigma|)\ntrue_P = float(theta_true_gs[0] * theta_true_gs[1] ** 0.5)\ndist_derived.add_derived(\n    lambda s: s[:, 0] * np.abs(s[:, 1]) ** 0.5,\n    label=r'P',\n    true_value=true_P,\n)\n\nprint('Full labels  :', dist_derived._full_labels())\nprint('Full truths  :', dist_derived._full_true_values())\n\nfull_s, full_w = dist_derived.get_full_samples()\nprint('Sample shape :', full_s.shape)   # (N, 3)  \u2014 2 original + 1 derived"
   },
   {
    "cell_type": "markdown",
@@ -1184,7 +1184,7 @@
    "execution_count": null,
    "metadata": {},
    "outputs": [],
-   "source": "# Build a comparison: IS vs SMC, both with the derived parameter\ndist_smc_d = SampledDistribution(\n    s_smc, true_values=theta, labels=[r'\\mu', r'\\sigma'],\n)\ndist_smc_d.add_derived(\n    lambda s: s[:, 0] * np.abs(s[:, 1]) ** 0.5,\n    label=r'P', true_value=true_P,\n)\n\nfrom psiphy.plotting.diagnostics import PosteriorComparison\ncomp_d = PosteriorComparison()\ncomp_d.add(dist_derived, label='IS',  color='C0')\ncomp_d.add(dist_smc_d,   label='SMC', color='C2')\n\n# 1-D overlay\nfig = comp_d.plot_contour_1d(param=r'P', fill=True, alpha=0.2)\nplt.title(r'Overlay: derived $P$ \u2014 IS vs SMC')\nplt.show()"
+   "source": "# Build a comparison: IS vs SMC, both with the derived parameter\ndist_smc_d = SampledDistribution(\n    s_smc, true_values=theta_true_gs, labels=[r'\\mu', r'\\sigma'],\n)\ndist_smc_d.add_derived(\n    lambda s: s[:, 0] * np.abs(s[:, 1]) ** 0.5,\n    label=r'P', true_value=true_P,\n)\n\nfrom psiphy.plotting.diagnostics import PosteriorComparison\ncomp_d = PosteriorComparison()\ncomp_d.add(dist_derived, label='IS',  color='C0')\ncomp_d.add(dist_smc_d,   label='SMC', color='C2')\n\n# 1-D overlay\nfig = comp_d.plot_contour_1d(param=r'P', fill=True, alpha=0.2)\nplt.title(r'Overlay: derived $P$ \u2014 IS vs SMC')\nplt.show()"
   },
   {
    "cell_type": "code",

@@ -1028,12 +1028,12 @@ SMC samples        1.762 1.444 0.753    NaN
 <span class="n">dist_derived</span> <span class="o">=</span> <span class="n">SampledDistribution</span><span class="p">(</span>
     <span class="n">s_is</span><span class="p">,</span>
     <span class="n">weights</span><span class="o">=</span><span class="n">w_is</span><span class="p">,</span>
-    <span class="n">true_values</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span>
+    <span class="n">true_values</span><span class="o">=</span><span class="n">theta_true_gs</span><span class="p">,</span>
     <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="sa">r</span><span class="s1">&#39;\mu&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;\sigma&#39;</span><span class="p">],</span>
 <span class="p">)</span>
 
 <span class="c1"># Register a derived parameter:  P = mu * sqrt(|sigma|)</span>
-<span class="n">true_P</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">)</span>
+<span class="n">true_P</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">theta_true_gs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta_true_gs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">)</span>
 <span class="n">dist_derived</span><span class="o">.</span><span class="n">add_derived</span><span class="p">(</span>
     <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">s</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">,</span>
     <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;P&#39;</span><span class="p">,</span>
@@ -1152,7 +1152,7 @@ SMC samples        1.762 1.444 0.753    NaN
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Build a comparison: IS vs SMC, both with the derived parameter</span>
 <span class="n">dist_smc_d</span> <span class="o">=</span> <span class="n">SampledDistribution</span><span class="p">(</span>
-    <span class="n">s_smc</span><span class="p">,</span> <span class="n">true_values</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="sa">r</span><span class="s1">&#39;\mu&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;\sigma&#39;</span><span class="p">],</span>
+    <span class="n">s_smc</span><span class="p">,</span> <span class="n">true_values</span><span class="o">=</span><span class="n">theta_true_gs</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="sa">r</span><span class="s1">&#39;\mu&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;\sigma&#39;</span><span class="p">],</span>
 <span class="p">)</span>
 <span class="n">dist_smc_d</span><span class="o">.</span><span class="n">add_derived</span><span class="p">(</span>
     <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">s</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">,</span>
