@@ -24,6 +24,7 @@ class DistributionDiagnostic(ABC):
     def __init__(self, true_values=None, labels=None):
         self.true_values = np.asarray(true_values, dtype=float) if true_values is not None else None
         self.labels = labels
+        self._derived = []
 
     # --- interface ---
 
@@ -170,11 +171,214 @@ class DistributionDiagnostic(ABC):
 
     # --- plotting and printing ---
 
+    # --- derived / pseudo parameters ---
+
+    def add_derived(self, func, label=None, true_value=None):
+        """Register a derived (pseudo) parameter computed from the original samples.
+
+        Parameters
+        ----------
+        func       : callable (N, D) → (N,)  maps original sample array to derived values
+        label      : str, optional            LaTeX label without $ delimiters
+        true_value : float, optional          ground-truth value for metric computation
+
+        Returns self for chaining.
+
+        Example
+        -------
+        dist.add_derived(lambda s: s[:, 0] * np.sqrt(s[:, 1] / 0.3),
+                         label=r'S_8', true_value=0.8)
+        """
+        self._derived.append({'func': func, 'label': label, 'true_value': true_value})
+        return self
+
+    def get_full_samples(self):
+        """Original samples augmented with any derived-parameter columns.
+
+        Returns (samples, weights) where samples has shape (N, D + K).
+        """
+        s, w = self.get_samples()
+        if s.ndim == 1:
+            s = s[:, None]
+        if not self._derived:
+            return s, w
+        cols = [s]
+        for d in self._derived:
+            c = np.asarray(d['func'](s), dtype=float)
+            cols.append(c[:, None] if c.ndim == 1 else c)
+        return np.hstack(cols), w
+
+    def _full_labels(self):
+        return self._param_labels() + [
+            d['label'] or rf'\phi_{{{i + 1}}}'
+            for i, d in enumerate(self._derived)
+        ]
+
+    def _full_true_values(self):
+        tv = list(self.true_values) if self.true_values is not None else [None] * self.n_params
+        for d in self._derived:
+            tv.append(d.get('true_value'))
+        return tv
+
+    def _resolve_param(self, param):
+        """Resolve a parameter index (int) or label (str) to a column index."""
+        if isinstance(param, (int, np.integer)):
+            return int(param)
+        labels = self._full_labels()
+        for i, lbl in enumerate(labels):
+            if param in (lbl, f'${lbl}$', lbl.strip('$')):
+                return i
+        raise ValueError(f'{param!r} not found. Available: {labels}')
+
+    # --- single-panel contour plots ---
+
+    def plot_contour_1d(self, param=0, ax=None, levels=(68, 95), smooth=1.0,
+                        color='C0', label=None, fill=True, alpha=0.35, figsize=None):
+        """1-D marginal KDE with credible-interval shading.
+
+        Parameters
+        ----------
+        param   : int or str  — parameter index or label (includes derived params)
+        ax      : Axes, optional  (new figure created if None)
+        levels  : tuple of ints   credible percentages to shade, default (68, 95)
+        smooth  : float           KDE bandwidth scale relative to Scott's rule
+        color   : matplotlib color
+        label   : str, optional   legend entry
+        fill    : bool            shade credible regions
+        alpha   : float           fill opacity
+        figsize : tuple, optional
+
+        Returns
+        -------
+        fig if ax was None, else the Axes object
+        """
+        from scipy.stats import gaussian_kde
+
+        s, w = self.get_full_samples()
+        p_idx = self._resolve_param(param)
+        col = s[:, p_idx]
+
+        standalone = ax is None
+        if standalone:
+            fig, ax = plt.subplots(figsize=figsize or (5, 4))
+        else:
+            fig = ax.get_figure()
+
+        kde = gaussian_kde(col, weights=w, bw_method='scott')
+        kde.set_bandwidth(kde.factor * smooth)
+
+        span = col.max() - col.min()
+        x_vals = np.linspace(col.min() - 0.15 * span, col.max() + 0.15 * span, 500)
+        y_vals = kde(x_vals)
+
+        ax.plot(x_vals, y_vals, color=color, label=label, lw=1.5)
+
+        if fill and levels:
+            y_sorted = np.sort(y_vals)[::-1]
+            y_cumsum = np.cumsum(y_sorted) / y_sorted.sum()
+            fill_alphas = np.linspace(alpha, alpha * 0.3, len(levels))
+            for j, lv in enumerate(sorted(levels, reverse=True)):
+                idx = min(np.searchsorted(y_cumsum, lv / 100), len(y_sorted) - 1)
+                thresh = y_sorted[idx]
+                ax.fill_between(x_vals, y_vals, where=y_vals >= thresh,
+                                color=color, alpha=fill_alphas[j])
+
+        tv = self._full_true_values()
+        if p_idx < len(tv) and tv[p_idx] is not None:
+            ax.axvline(tv[p_idx], color='k', ls='--', lw=1.5, zorder=4)
+
+        lbl = self._full_labels()[p_idx]
+        ax.set_xlabel(f'${lbl}$', fontsize=13)
+        ax.set_ylabel('density', fontsize=12)
+
+        if standalone:
+            fig.tight_layout()
+            return fig
+        return ax
+
+    def plot_contour_2d(self, param1=0, param2=1, ax=None, levels=(68, 95),
+                        smooth=1.0, color='C0', filled=True, alpha=0.35, figsize=None):
+        """2-D joint posterior KDE contours at the requested credible levels.
+
+        Parameters
+        ----------
+        param1, param2 : int or str  — parameter indices or labels
+        ax      : Axes, optional  (new figure created if None)
+        levels  : tuple of ints   credible percentages, default (68, 95)
+        smooth  : float           KDE bandwidth scale relative to Scott's rule
+        color   : matplotlib color
+        filled  : bool            filled contours (default True)
+        alpha   : float           fill opacity
+        figsize : tuple, optional
+
+        Returns
+        -------
+        fig if ax was None, else the Axes object
+        """
+        from scipy.stats import gaussian_kde
+
+        s, w = self.get_full_samples()
+        p1 = self._resolve_param(param1)
+        p2 = self._resolve_param(param2)
+
+        standalone = ax is None
+        if standalone:
+            fig, ax = plt.subplots(figsize=figsize or (5, 5))
+        else:
+            fig = ax.get_figure()
+
+        xy = np.vstack([s[:, p1], s[:, p2]])
+        kde = gaussian_kde(xy, weights=w, bw_method='scott')
+        kde.set_bandwidth(kde.factor * smooth)
+
+        n_grid = 100
+        mf = 0.15
+        x1_min, x1_max = s[:, p1].min(), s[:, p1].max()
+        x2_min, x2_max = s[:, p2].min(), s[:, p2].max()
+        x1 = np.linspace(x1_min - mf * (x1_max - x1_min),
+                          x1_max + mf * (x1_max - x1_min), n_grid)
+        x2 = np.linspace(x2_min - mf * (x2_max - x2_min),
+                          x2_max + mf * (x2_max - x2_min), n_grid)
+        X1, X2 = np.meshgrid(x1, x2)
+        Z = kde(np.vstack([X1.ravel(), X2.ravel()])).reshape(n_grid, n_grid)
+
+        sorted_Z = np.sort(Z.ravel())[::-1]
+        cumsum = np.cumsum(sorted_Z) / sorted_Z.sum()
+        thresholds = sorted([
+            sorted_Z[min(np.searchsorted(cumsum, lv / 100), len(sorted_Z) - 1)]
+            for lv in sorted(levels, reverse=True)
+        ])
+
+        if filled:
+            fill_alphas = np.linspace(alpha * 0.35, alpha, len(thresholds))
+            for thresh, a in zip(thresholds, fill_alphas):
+                ax.contourf(X1, X2, Z, levels=[thresh, Z.max() + 1],
+                            colors=[color], alpha=a)
+        ax.contour(X1, X2, Z, levels=thresholds, colors=[color], linewidths=1.5)
+
+        tv = self._full_true_values()
+        if p1 < len(tv) and tv[p1] is not None:
+            ax.axvline(tv[p1], color='k', ls='--', lw=1.2, zorder=4)
+        if p2 < len(tv) and tv[p2] is not None:
+            ax.axhline(tv[p2], color='k', ls='--', lw=1.2, zorder=4)
+
+        labels = self._full_labels()
+        ax.set_xlabel(f'${labels[p1]}$', fontsize=13)
+        ax.set_ylabel(f'${labels[p2]}$', fontsize=13)
+
+        if standalone:
+            fig.tight_layout()
+            return fig
+        return ax
+
     def plot_triangle(self, engine='corner', **kwargs):
         """Triangle/corner plot delegated to :func:`plot_triangle`."""
-        samples, weights = self.get_samples()
-        return plot_triangle(samples, weights=weights, labels=self._param_labels(),
-                             true_values=self.true_values, engine=engine, **kwargs)
+        s, w = self.get_full_samples()
+        tv_list = self._full_true_values()
+        tv = [v if v is not None else np.nan for v in tv_list]
+        tv = tv if any(np.isfinite(v) for v in tv) else None
+        return plot_triangle(s, weights=w, labels=self._full_labels(),
+                             true_values=tv, engine=engine, **kwargs)
 
     def print_stats(self, levels=(68, 95)):
         """Print weighted mean, std, and equal-tailed credible intervals."""
@@ -539,6 +743,86 @@ class PosteriorComparison:
             return df
         except ImportError:
             return rows
+
+    def plot_contour_1d(self, param=0, ax=None, levels=(68, 95), smooth=1.0,
+                        fill=True, alpha=0.25, figsize=None):
+        """Overlay 1-D marginal KDE for all registered posteriors.
+
+        Parameters
+        ----------
+        param   : int or str  — parameter index or label (including derived params)
+        ax      : Axes, optional  (new figure created if None)
+        levels  : tuple of ints   credible percentages, default (68, 95)
+        smooth  : float           KDE bandwidth scale (1.0 = Scott's rule)
+        fill    : bool            shade credible regions
+        alpha   : float           fill opacity per entry
+        figsize : tuple, optional
+
+        Returns
+        -------
+        fig if ax was None, else the Axes object
+        """
+        if not self._entries:
+            raise ValueError('No posteriors added. Call .add() first.')
+        standalone = ax is None
+        if standalone:
+            fig, ax = plt.subplots(figsize=figsize or (5, 4))
+        else:
+            fig = ax.get_figure()
+
+        for i, entry in enumerate(self._entries):
+            entry['posterior'].plot_contour_1d(
+                param=param, ax=ax, levels=levels, smooth=smooth,
+                color=self._color(i), label=entry['label'],
+                fill=fill, alpha=alpha,
+            )
+
+        if standalone:
+            ax.legend()
+            fig.tight_layout()
+            return fig
+        return ax
+
+    def plot_contour_2d(self, param1=0, param2=1, ax=None, levels=(68, 95),
+                        smooth=1.0, filled=False, alpha=0.2, figsize=None):
+        """Overlay 2-D joint contours for all registered posteriors.
+
+        Parameters
+        ----------
+        param1, param2 : int or str  — parameter indices or labels
+        ax      : Axes, optional  (new figure created if None)
+        levels  : tuple of ints   credible percentages, default (68, 95)
+        smooth  : float           KDE bandwidth scale
+        filled  : bool            filled contours (default False — lines avoid colour blending)
+        alpha   : float           fill opacity if filled=True
+        figsize : tuple, optional
+
+        Returns
+        -------
+        fig if ax was None, else the Axes object
+        """
+        if not self._entries:
+            raise ValueError('No posteriors added. Call .add() first.')
+        standalone = ax is None
+        if standalone:
+            fig, ax = plt.subplots(figsize=figsize or (5, 5))
+        else:
+            fig = ax.get_figure()
+
+        for i, entry in enumerate(self._entries):
+            entry['posterior'].plot_contour_2d(
+                param1=param1, param2=param2, ax=ax, levels=levels, smooth=smooth,
+                color=self._color(i), filled=filled, alpha=alpha,
+            )
+
+        if standalone:
+            handles = [mlines.Line2D([], [], color=self._color(i), lw=2,
+                                     label=e['label'])
+                       for i, e in enumerate(self._entries)]
+            ax.legend(handles=handles)
+            fig.tight_layout()
+            return fig
+        return ax
 
 
 # ── Standalone functions ──────────────────────────────────────────────────────

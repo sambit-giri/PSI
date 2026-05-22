@@ -247,3 +247,146 @@ class TestPrintChainStats:
         print_chain_stats(means, sigmas=sigmas, cis=cis, labels=[r'x_1', r'x_2'])
         out = capsys.readouterr().out
         assert '0.5000' in out
+
+
+# ── derived parameters & contour plots ───────────────────────────────────────
+
+class TestDerivedParameters:
+    def setup_method(self):
+        samples = make_samples()
+        self.dist = SampledDistribution(samples, true_values=TRUE_VALUES,
+                                        labels=[r'x_1', r'x_2'])
+        # S8-like derived: x_1 * sqrt(x_2 / 1.0)
+        self.dist.add_derived(lambda s: s[:, 0] * np.sqrt(s[:, 1]),
+                              label=r'S_8', true_value=0.5 * 1.0)
+
+    def test_get_full_samples_shape(self):
+        s, w = self.dist.get_full_samples()
+        assert s.shape == (N, 3)  # 2 original + 1 derived
+        assert w is None
+
+    def test_full_labels(self):
+        lbls = self.dist._full_labels()
+        assert len(lbls) == 3
+        assert r'S_8' in lbls
+
+    def test_full_true_values(self):
+        tv = self.dist._full_true_values()
+        assert len(tv) == 3
+        assert tv[2] == pytest.approx(0.5)
+
+    def test_resolve_param_by_index(self):
+        assert self.dist._resolve_param(0) == 0
+        assert self.dist._resolve_param(2) == 2
+
+    def test_resolve_param_by_label(self):
+        assert self.dist._resolve_param(r'S_8') == 2
+
+    def test_chaining(self):
+        samples = make_samples()
+        dist = SampledDistribution(samples)
+        result = dist.add_derived(lambda s: s[:, 0] + s[:, 1])
+        assert result is dist
+
+    def test_derived_values_correct(self):
+        s, _ = self.dist.get_full_samples()
+        orig_s, _ = self.dist.get_samples()
+        expected = orig_s[:, 0] * np.sqrt(orig_s[:, 1])
+        np.testing.assert_allclose(s[:, 2], expected)
+
+    def test_plot_contour_1d_original(self):
+        import matplotlib
+        matplotlib.use('Agg')
+        fig = self.dist.plot_contour_1d(param=0)
+        assert fig is not None
+        import matplotlib.pyplot as plt
+        plt.close('all')
+
+    def test_plot_contour_1d_derived(self):
+        import matplotlib
+        matplotlib.use('Agg')
+        fig = self.dist.plot_contour_1d(param=r'S_8')
+        assert fig is not None
+        import matplotlib.pyplot as plt
+        plt.close('all')
+
+    def test_plot_contour_2d(self):
+        import matplotlib
+        matplotlib.use('Agg')
+        fig = self.dist.plot_contour_2d(param1=0, param2=1)
+        assert fig is not None
+        import matplotlib.pyplot as plt
+        plt.close('all')
+
+    def test_plot_contour_2d_with_derived(self):
+        import matplotlib
+        matplotlib.use('Agg')
+        fig = self.dist.plot_contour_2d(param1=0, param2=r'S_8')
+        assert fig is not None
+        import matplotlib.pyplot as plt
+        plt.close('all')
+
+    def test_plot_contour_into_existing_axes(self):
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots()
+        result = self.dist.plot_contour_1d(param=0, ax=ax)
+        assert result is ax
+        plt.close('all')
+
+    def test_grid_derived(self):
+        grid, coords = make_grid()
+        dist = GriddedProbabilities(grid, coords=coords, true_values=TRUE_VALUES,
+                                    labels=[r'x_1', r'x_2'])
+        dist.add_derived(lambda s: s[:, 0] * np.sqrt(s[:, 1]),
+                         label=r'S_8', true_value=0.5)
+        s, w = dist.get_full_samples()
+        assert s.shape[1] == 3
+
+
+class TestPosteriorComparisonContours:
+    def setup_method(self):
+        import matplotlib
+        matplotlib.use('Agg')
+        samples_a = make_samples()
+        samples_b = make_samples() + 0.1
+        da = SampledDistribution(samples_a, true_values=TRUE_VALUES,
+                                 labels=[r'x_1', r'x_2'])
+        db = SampledDistribution(samples_b, true_values=TRUE_VALUES,
+                                 labels=[r'x_1', r'x_2'])
+        self.comp = PosteriorComparison()
+        self.comp.add(da, label='A')
+        self.comp.add(db, label='B')
+
+    def test_contour_1d(self):
+        fig = self.comp.plot_contour_1d(param=0)
+        assert fig is not None
+        import matplotlib.pyplot as plt
+        plt.close('all')
+
+    def test_contour_2d(self):
+        fig = self.comp.plot_contour_2d(param1=0, param2=1)
+        assert fig is not None
+        import matplotlib.pyplot as plt
+        plt.close('all')
+
+    def test_contour_2d_filled(self):
+        fig = self.comp.plot_contour_2d(param1=0, param2=1, filled=True)
+        assert fig is not None
+        import matplotlib.pyplot as plt
+        plt.close('all')
+
+    def test_contour_into_axes(self):
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots()
+        result = self.comp.plot_contour_1d(param=0, ax=ax)
+        assert result is ax
+        plt.close('all')
+
+    def test_empty_raises(self):
+        comp = PosteriorComparison()
+        with pytest.raises(ValueError, match='No posteriors'):
+            comp.plot_contour_1d()
+        with pytest.raises(ValueError, match='No posteriors'):
+            comp.plot_contour_2d()
